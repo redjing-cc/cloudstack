@@ -64,7 +64,9 @@ NOW="$(date +%s)"
 #   $5 brand string to apply/override
 #   $6 use timestamp flag
 function packaging() {
-    RPMDIR=$PWD/../dist/rpmbuild
+ #   RPMDIR=$PWD/../dist/rpmbuild
+    RPMDIR=$PWD/../../dist/rpmbuild
+    SRCDIR=$PWD/..
     PACK_PROJECT=cloudstack
 
     if [ -n "$1" ] ; then
@@ -166,14 +168,16 @@ function packaging() {
     mkdir -p "$RPMDIR/SRPMS"
     mkdir -p "$RPMDIR/SOURCES/$PACK_PROJECT-$VERSION"
 
-    echo ". preparing source tarball"
-    (cd $PWD/../; tar -c --exclude .git --exclude dist . | tar -C "$RPMDIR/SOURCES/$PACK_PROJECT-$VERSION" -x )
-    (cd "$RPMDIR/SOURCES/"; tar -czf "$PACK_PROJECT-$VERSION.tgz" "$PACK_PROJECT-$VERSION")
+    echo ". preparing source tarball""
+ #   (cd $PWD/../; tar -c --exclude .git --exclude dist . | tar -C "$RPMDIR/SOURCES/$PACK_PROJECT-$VERSION" -x )
+ #   (cd "$RPMDIR/SOURCES/"; tar -czf "$PACK_PROJECT-$VERSION.tgz" "$PACK_PROJECT-$VERSION")
 
     echo ". executing rpmbuild"
-    cp "$PWD/$DISTRO/cloud.spec" "$RPMDIR/SPECS"
+    cp "$PWD/$DISTRO/cloud.spec" "$RPMDIR/SPECS
 
-    (cd "$RPMDIR"; rpmbuild --define "_topdir ${RPMDIR}" "${DEFVER}" "${DEFFULLVER}" "${DEFREL}" ${DEFPRE+"$DEFPRE"} ${DEFOSSNOSS+"$DEFOSSNOSS"} ${DEFSIM+"$DEFSIM"} ${DEFTEMP+"$DEFTEMP"} -bb SPECS/cloud.spec)
+    echo "rpmbuild --define '_topdir ${RPMDIR}' '${DEFVER}' '${DEFFULLVER}' '${DEFREL}' ${DEFPRE+'$DEFPRE'} ${DEFOSSNOSS+'$DEFOSSNOSS'} ${DEFSIM+'$DEFSIM'} ${DEFTEMP+'$DEFTEMP'}"
+    
+    (cd "$RPMDIR"; rpmbuild --define "_topdir ${RPMDIR}" "${DEFVER}" "${DEFFULLVER}" "${DEFREL}" ${DEFPRE+"$DEFPRE"} ${DEFOSSNOSS+"$DEFOSSNOSS"} ${DEFSIM+"$DEFSIM"} ${DEFTEMP+"$DEFTEMP"} --define "_sourcedir ${SRCDIR}" --define "_builddir ${SRCDIR}" -bb SPECS/cloud.spec -v)
     if [ $? -ne 0 ]; then
         if [ "$USE_TIMESTAMP" == "true" ]; then
             (cd $PWD/../; git reset --hard)

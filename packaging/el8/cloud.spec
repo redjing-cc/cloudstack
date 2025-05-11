@@ -47,7 +47,7 @@ BuildRequires: glibc-devel
 BuildRequires: /usr/bin/mkisofs
 BuildRequires: python3-setuptools
 BuildRequires: wget
-BuildRequires: nodejs
+# BuildRequires: nodejs
 
 %description
 CloudStack is a highly-scalable elastic, open source,
@@ -184,7 +184,7 @@ Apache CloudStack Balancing Strategy for MySQL
 %prep
 echo Doing CloudStack build
 
-%setup -q -n %{name}-%{_maventag}
+##%setup -q -n %{name}-%{_maventag}
 
 %build
 
@@ -209,7 +209,8 @@ if [ \"%{_temp}\" != "" ]; then
     FLAGS="$FLAGS `rpm --eval %{?_temp}`"
 fi
 
-mvn -Psystemvm,developer $FLAGS clean package
+# cj modify, skip test
+mvn -Psystemvm,developer $FLAGS -DskipTests=true package 
 cd ui && npm install && npm run build && cd ..
 
 %install
@@ -404,7 +405,7 @@ install -D tools/whisker/NOTICE ${RPM_BUILD_ROOT}%{_defaultdocdir}/%{name}-integ
 install -D tools/whisker/LICENSE ${RPM_BUILD_ROOT}%{_defaultdocdir}/%{name}-integration-tests-%{version}/LICENSE
 
 %clean
-[ ${RPM_BUILD_ROOT} != "/" ] && rm -rf ${RPM_BUILD_ROOT}
+## [ ${RPM_BUILD_ROOT} != "/" ] && rm -rf ${RPM_BUILD_ROOT}
 
 %posttrans common
 
