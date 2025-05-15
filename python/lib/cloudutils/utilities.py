@@ -132,6 +132,9 @@ class Distribution:
                 self.distro = "CentOS"
             else:
                 self.distro = "RHEL5"
+        elif os.path.exists("/etc/openEuler-release"):
+            version = open("/etc/openEuler-release").readline()
+            self.distro = "openEuler"
         elif os.path.exists("/etc/legal") and "Ubuntu" in open("/etc/legal").read(-1):
             self.distro = "Ubuntu"
             kernel = bash("uname -r").getStdout()

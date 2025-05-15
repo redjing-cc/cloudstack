@@ -47,6 +47,8 @@ class sysConfigAgentFactory:
             return sysConfigEL(glbEnv)
         elif distribution == "SUSE":
             return sysConfigSUSE(glbEnv)
+        elif distribution == "openEuler":
+            return sysConfigEL(glbEnv)
         else:
             print("Can't find the distribution version")
             return sysConfig()
