@@ -59,7 +59,7 @@ public class KVMHostInfo {
     private long overCommitMemory;
     private List<String> capabilities = new ArrayList<>();
     private static String cpuArchCommand = "/usr/bin/arch";
-    private static List<String> cpuInfoFreqFileNames = List.of("/sys/devices/system/cpu/cpu0/cpufreq/base_frequency","/sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq");
+    private static List<String> cpuInfoFreqFileNames = List.of("/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq","/sys/devices/system/cpu/cpu0/cpufreq/base_frequency","/sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq");
 
     public KVMHostInfo(long reservedMemory, long overCommitMemory, long manualSpeed, int reservedCpus) {
         this.cpuSpeed = manualSpeed;
@@ -140,7 +140,8 @@ public class KVMHostInfo {
         long speed = 0L;
         LOGGER.info("Fetching CPU speed from command \"lscpu\".");
         try {
-            String command = "lscpu | grep -i 'Model name' | head -n 1 | grep -E -o '[[:digit:]].[[:digit:]]+GHz' | sed 's/GHz//g'";
+            /* cj modified in 2025/06/03 for openEuler modify 'Model name' to 'BIOS Model name' */
+            String command = "lscpu | grep -i 'BIOS Model name' | head -n 1 | grep -E -o '[[:digit:]].[[:digit:]]+GHz' | sed 's/GHz//g'";
             if(isHostS390x()) {
                 command = "lscpu | grep 'CPU dynamic MHz' | cut -d ':' -f 2 | tr -d ' ' | awk '{printf \"%.1f\\n\", $1 / 1000}'";
             }

@@ -97,18 +97,20 @@ import com.cloud.utils.nio.Link;
 import com.cloud.utils.nio.NioClient;
 import com.cloud.utils.nio.NioConnection;
 import com.cloud.utils.nio.Task;
-import com.cloud.utils.script.OutputInterpreter;
+//import com.cloud.utils.script.OutputInterpreter;
 import com.cloud.utils.script.Script;
 
 /**
  * @config
  *         {@table
  *         || Param Name | Description | Values | Default ||
- *         || type | Type of server | Storage / Computing / Routing | No Default ||
+ *         || type | Type of server | Storage / Computing / Routing | No Default
+ *         ||
  *         || workers | # of workers to process the requests | int | 1 ||
  *         || host | host to connect to | ip address | localhost ||
  *         || port | port to connect to | port number | 8250 ||
- *         || instance | Used to allow multiple agents running on the same host | String | none || * }
+ *         || instance | Used to allow multiple agents running on the same host
+ *         | String | none || * }
  *
  *         For more configuration options, see the individual types.
  *
@@ -158,7 +160,7 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
     long startupWait = DEFAULT_STARTUP_WAIT;
     boolean reconnectAllowed = true;
 
-    //For time sensitive task, e.g. PingTask
+    // For time sensitive task, e.g. PingTask
     ThreadPoolExecutor outRequestHandler;
     ExecutorService requestHandler;
 
@@ -183,16 +185,15 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
 
     protected String getAgentName() {
         return (serverResource != null && serverResource.isAppendAgentNameToLogs() &&
-                StringUtils.isNotBlank(serverResource.getName())) ?
-                serverResource.getName() :
-                "Agent";
+                StringUtils.isNotBlank(serverResource.getName())) ? serverResource.getName() : "Agent";
     }
 
     protected void setupShutdownHookAndInitExecutors() {
         logger.trace("Adding shutdown hook");
         Runtime.getRuntime().addShutdownHook(shutdownThread);
         selfTaskExecutor = Executors.newScheduledThreadPool(1, new NamedThreadFactory("Agent-SelfTask"));
-        outRequestHandler = new ThreadPoolExecutor(shell.getPingRetries(), 2 * shell.getPingRetries(), 10, TimeUnit.MINUTES,
+        outRequestHandler = new ThreadPoolExecutor(shell.getPingRetries(), 2 * shell.getPingRetries(), 10,
+                TimeUnit.MINUTES,
                 new SynchronousQueue<>(), new NamedThreadFactory("AgentOutRequest-Handler"));
         requestHandler = new ThreadPoolExecutor(shell.getWorkers(), 5 * shell.getWorkers(), 1, TimeUnit.DAYS,
                 new LinkedBlockingQueue<>(), new NamedThreadFactory("AgentRequest-Handler"));
@@ -201,11 +202,13 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
     /**
      * Constructor for the {@code Agent} class, intended for simulator use only.
      *
-     * <p>This constructor initializes the agent with a provided {@link IAgentShell}.
+     * <p>
+     * This constructor initializes the agent with a provided {@link IAgentShell}.
      * It sets up the necessary NIO client connection, establishes a shutdown hook,
      * and initializes the thread executors.
      *
-     * @param shell the {@link IAgentShell} instance that provides agent configuration and runtime information.
+     * @param shell the {@link IAgentShell} instance that provides agent
+     *              configuration and runtime information.
      */
     public Agent(final IAgentShell shell) {
         this.shell = shell;
@@ -216,12 +219,12 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
                 this.shell.getPort(),
                 this.shell.getWorkers(),
                 this.shell.getSslHandshakeTimeout(),
-                this
-        );
+                this);
         setupShutdownHookAndInitExecutors();
     }
 
-    public Agent(final IAgentShell shell, final int localAgentId, final ServerResource resource) throws ConfigurationException {
+    public Agent(final IAgentShell shell, final int localAgentId, final ServerResource resource)
+            throws ConfigurationException {
         this.shell = shell;
         serverResource = resource;
         link = null;
@@ -233,7 +236,8 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
         logger.info("Initialising agent [id: {}, uuid: {}, name: {}]", ObjectUtils.defaultIfNull(id, ""), _uuid, _name);
 
         final Map<String, Object> params = new HashMap<>();
-        // merge with properties from command line to let resource access command line parameters
+        // merge with properties from command line to let resource access command line
+        // parameters
         for (final Map.Entry<String, Object> cmdLineProp : this.shell.getCmdLineProperties().entrySet()) {
             params.put(cmdLineProp.getKey(), cmdLineProp.getValue());
         }
@@ -248,10 +252,10 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
         logger.info("{} with host = {}, local id = {}", this, host, localAgentId);
     }
 
-
     @Override
     public String toString() {
-        return String.format("Agent [id = %s, uuid = %s, name = %s, type = %s, zone = %s, pod = %s, workers = %d, port = %d]",
+        return String.format(
+                "Agent [id = %s, uuid = %s, name = %s, type = %s, zone = %s, pod = %s, workers = %d, port = %d]",
                 ObjectUtils.defaultIfNull(id, "new"),
                 _uuid,
                 _name,
@@ -316,18 +320,21 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
 
         keystoreSetupSetupPath = Script.findScript("scripts/util/", KeyStoreUtils.KS_SETUP_SCRIPT);
         if (keystoreSetupSetupPath == null) {
-            throw new CloudRuntimeException(String.format("Unable to find the '%s' script", KeyStoreUtils.KS_SETUP_SCRIPT));
+            throw new CloudRuntimeException(
+                    String.format("Unable to find the '%s' script", KeyStoreUtils.KS_SETUP_SCRIPT));
         }
 
         keystoreCertImportScriptPath = Script.findScript("scripts/util/", KeyStoreUtils.KS_IMPORT_SCRIPT);
         if (keystoreCertImportScriptPath == null) {
-            throw new CloudRuntimeException(String.format("Unable to find the '%s' script", KeyStoreUtils.KS_IMPORT_SCRIPT));
+            throw new CloudRuntimeException(
+                    String.format("Unable to find the '%s' script", KeyStoreUtils.KS_IMPORT_SCRIPT));
         }
 
         try {
             connection.start();
         } catch (final NioConnectionException e) {
-            logger.warn("Attempt to connect to server generated NIO Connection Exception {}, trying again", e.getLocalizedMessage());
+            logger.warn("Attempt to connect to server generated NIO Connection Exception {}, trying again",
+                    e.getLocalizedMessage());
         }
         while (!connection.isStartup()) {
             final String host = shell.getNextHost();
@@ -339,10 +346,11 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
                 connection.start();
             } catch (final NioConnectionException e) {
                 stopAndCleanupConnection(false);
-                logger.info("Attempted to connect to the server, but received an unexpected exception, trying again...", e);
+                logger.info("Attempted to connect to the server, but received an unexpected exception, trying again...",
+                        e);
             }
         }
-        shell.updateConnectedHost(((NioClient)connection).getHost());
+        shell.updateConnectedHost(((NioClient) connection).getHost());
         scavengeOldAgentObjects();
     }
 
@@ -445,7 +453,7 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
                 }
             } catch (InterruptedException e) {
                 logger.debug("Forcing {} shutdown as it did not shutdown in the desired time due to: {}",
-                                name, e.getMessage());
+                        name, e.getMessage());
                 certExecutor.shutdownNow();
             }
         }
@@ -478,7 +486,8 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
     public void scheduleWatch(final Link link, final Request request, final long delay, final long period) {
         logger.debug("Adding a watch list");
         final WatchTask task = new WatchTask(link, request, this);
-        final ScheduledFuture<?> future = selfTaskExecutor.scheduleAtFixedRate(task, delay, period, TimeUnit.MILLISECONDS);
+        final ScheduledFuture<?> future = selfTaskExecutor.scheduleAtFixedRate(task, delay, period,
+                TimeUnit.MILLISECONDS);
         watchList.add(future);
     }
 
@@ -606,9 +615,15 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
     }
 
     protected String getAgentArch() {
-        final Script command = new Script("/usr/bin/arch", 500, logger);
-        final OutputInterpreter.OneLineParser parser = new OutputInterpreter.OneLineParser();
-        return command.execute(parser);
+        // cj modified in 2025/06/03
+        /*
+         * final Script command = new Script("/usr/bin/arch", 500, logger);
+         * final OutputInterpreter.OneLineParser parser = new
+         * OutputInterpreter.OneLineParser();
+         * return command.execute(parser);
+         */
+        String result = Script.runSimpleBashScript("/usr/bin/arch");
+        return result;
     }
 
     @Override
@@ -631,7 +646,8 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
         setLink(null);
         cancelTasks();
         serverResource.disconnected();
-        logger.info("Lost connection to host: {}. Attempting reconnection while we still have {} commands in progress.", shell.getConnectedHost(), commandsInProgress.get());
+        logger.info("Lost connection to host: {}. Attempting reconnection while we still have {} commands in progress.",
+                shell.getConnectedHost(), commandsInProgress.get());
         stopAndCleanupConnection(true);
         String host = preferredMSHost;
         if (org.apache.commons.lang3.StringUtils.isBlank(host)) {
@@ -640,19 +656,22 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
         List<String> avoidMSHostList = shell.getAvoidHosts();
         do {
             if (CollectionUtils.isEmpty(avoidMSHostList) || !avoidMSHostList.contains(host)) {
-                connection = new NioClient(getAgentName(), host, shell.getPort(), shell.getWorkers(), shell.getSslHandshakeTimeout(), this);
+                connection = new NioClient(getAgentName(), host, shell.getPort(), shell.getWorkers(),
+                        shell.getSslHandshakeTimeout(), this);
                 logger.info("Reconnecting to host: {}", host);
                 try {
                     connection.start();
                 } catch (final NioConnectionException e) {
-                    logger.info("Attempted to re-connect to the server, but received an unexpected exception, trying again...", e);
+                    logger.info(
+                            "Attempted to re-connect to the server, but received an unexpected exception, trying again...",
+                            e);
                     stopAndCleanupConnection(false);
                 }
             }
             shell.getBackoffAlgorithm().waitBeforeRetry();
             host = shell.getNextHost();
         } while (!connection.isStartup());
-        shell.updateConnectedHost(((NioClient)connection).getHost());
+        shell.updateConnectedHost(((NioClient) connection).getHost());
         logger.info("Connected to the host: {}", shell.getConnectedHost());
     }
 
@@ -684,7 +703,7 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
 
     public void processStartupAnswer(final Answer answer, final Response response, final Link link) {
         boolean answerValid = cancelStartupTask();
-        final StartupAnswer startup = (StartupAnswer)answer;
+        final StartupAnswer startup = (StartupAnswer) answer;
         if (!startup.getResult()) {
             logger.error("Not allowed to connect to the server: {}", answer.getDetails());
             if (serverResource != null && !serverResource.isExitOnFailures()) {
@@ -736,7 +755,7 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
                         {
                             final String requestMsg = request.toString();
                             if (requestMsg != null) {
-                                logger.debug("Request:{}",requestMsg);
+                                logger.debug("Request:{}", requestMsg);
                             }
                             requestLogged = true;
                         }
@@ -744,11 +763,11 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
                     }
 
                     if (cmd instanceof CronCommand) {
-                        final CronCommand watch = (CronCommand)cmd;
+                        final CronCommand watch = (CronCommand) cmd;
                         scheduleWatch(link, request, watch.getInterval() * 1000L, watch.getInterval() * 1000L);
                         answer = new Answer(cmd, true, null);
                     } else if (cmd instanceof ShutdownCommand) {
-                        final ShutdownCommand shutdown = (ShutdownCommand)cmd;
+                        final ShutdownCommand shutdown = (ShutdownCommand) cmd;
                         logger.debug("Received shutdownCommand, due to: {}", shutdown.getReason());
                         cancelTasks();
                         if (shutdown.isRemoveHost()) {
@@ -756,9 +775,9 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
                         }
                         reconnectAllowed = false;
                         answer = new Answer(cmd, true, null);
-                    } else if (cmd instanceof ReadyCommand && ((ReadyCommand)cmd).getDetails() != null) {
+                    } else if (cmd instanceof ReadyCommand && ((ReadyCommand) cmd).getDetails() != null) {
 
-                        logger.debug("Not ready to connect to mgt server: {}", ((ReadyCommand)cmd).getDetails());
+                        logger.debug("Not ready to connect to mgt server: {}", ((ReadyCommand) cmd).getDetails());
                         if (serverResource != null && !serverResource.isExitOnFailures()) {
                             logger.trace("{} does not allow exit on failure, reconnecting",
                                     serverResource.getClass().getSimpleName());
@@ -769,11 +788,11 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
                         return;
                     } else if (cmd instanceof MaintainCommand) {
                         logger.debug("Received maintainCommand, do not cancel current tasks");
-                        answer = new MaintainAnswer((MaintainCommand)cmd);
+                        answer = new MaintainAnswer((MaintainCommand) cmd);
                     } else if (cmd instanceof AgentControlCommand) {
                         answer = null;
                         for (final IAgentControlListener listener : controlListeners) {
-                            answer = listener.processControlRequest(request, (AgentControlCommand)cmd);
+                            answer = listener.processControlRequest(request, (AgentControlCommand) cmd);
                             if (answer != null) {
                                 break;
                             }
@@ -785,7 +804,8 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
                         }
                     } else if (cmd instanceof SetupKeyStoreCommand && ((SetupKeyStoreCommand) cmd).isHandleByAgent()) {
                         answer = setupAgentKeystore((SetupKeyStoreCommand) cmd);
-                    } else if (cmd instanceof SetupCertificateCommand && ((SetupCertificateCommand) cmd).isHandleByAgent()) {
+                    } else if (cmd instanceof SetupCertificateCommand
+                            && ((SetupCertificateCommand) cmd).isHandleByAgent()) {
                         answer = setupAgentCertificate((SetupCertificateCommand) cmd);
                         if (Host.Type.Routing.equals(serverResource.getType())) {
                             scheduleCertificateRenewalTask();
@@ -928,10 +948,12 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
         return new SetupCertificateAnswer(true);
     }
 
-    private void processManagementServerList(final List<String> msList, final List<String> avoidMsList, final String lbAlgorithm, final Long lbCheckInterval) {
+    private void processManagementServerList(final List<String> msList, final List<String> avoidMsList,
+            final String lbAlgorithm, final Long lbCheckInterval) {
         if (CollectionUtils.isNotEmpty(msList) && StringUtils.isNotEmpty(lbAlgorithm)) {
             try {
-                final String newMSHosts = String.format("%s%s%s", com.cloud.utils.StringUtils.toCSVList(msList), IAgentShell.hostLbAlgorithmSeparator, lbAlgorithm);
+                final String newMSHosts = String.format("%s%s%s", com.cloud.utils.StringUtils.toCSVList(msList),
+                        IAgentShell.hostLbAlgorithmSeparator, lbAlgorithm);
                 shell.setPersistentProperty(null, "host", newMSHosts);
                 shell.setHosts(newMSHosts);
                 shell.resetHostCounter();
@@ -949,18 +971,21 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
     }
 
     private Answer setupManagementServerList(final SetupMSListCommand cmd) {
-        processManagementServerList(cmd.getMsList(), cmd.getAvoidMsList(), cmd.getLbAlgorithm(), cmd.getLbCheckInterval());
+        processManagementServerList(cmd.getMsList(), cmd.getAvoidMsList(), cmd.getLbAlgorithm(),
+                cmd.getLbCheckInterval());
         return new SetupMSListAnswer(true);
     }
 
     private Answer migrateAgentToOtherMS(final MigrateAgentConnectionCommand cmd) {
         try {
             if (CollectionUtils.isNotEmpty(cmd.getMsList())) {
-                processManagementServerList(cmd.getMsList(), cmd.getAvoidMsList(), cmd.getLbAlgorithm(), cmd.getLbCheckInterval());
+                processManagementServerList(cmd.getMsList(), cmd.getAvoidMsList(), cmd.getLbAlgorithm(),
+                        cmd.getLbCheckInterval());
             }
-            Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("MigrateAgentConnection-Job")).schedule(() -> {
-                migrateAgentConnection(cmd.getAvoidMsList());
-            }, 3, TimeUnit.SECONDS);
+            Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("MigrateAgentConnection-Job"))
+                    .schedule(() -> {
+                        migrateAgentConnection(cmd.getAvoidMsList());
+                    }, 3, TimeUnit.SECONDS);
         } catch (Exception e) {
             String errMsg = "Migrate agent connection failed, due to " + e.getMessage();
             logger.debug(errMsg, e);
@@ -981,14 +1006,15 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
             throw new CloudRuntimeException("No other Management Server hosts to migrate");
         }
 
-        String preferredMSHost  = null;
+        String preferredMSHost = null;
         for (String msHost : msHostsList) {
             try (final Socket socket = new Socket()) {
                 socket.connect(new InetSocketAddress(msHost, shell.getPort()), 5000);
                 preferredMSHost = msHost;
                 break;
             } catch (final IOException e) {
-                throw new CloudRuntimeException("Management server host: " + msHost + " is not reachable, to migrate connection");
+                throw new CloudRuntimeException(
+                        "Management server host: " + msHost + " is not reachable, to migrate connection");
             }
         }
 
@@ -1011,7 +1037,7 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
         } else if (answer instanceof AgentControlAnswer) {
             // Notice, we are doing callback while holding a lock!
             for (final IAgentControlListener listener : controlListeners) {
-                listener.processControlResponse(response, (AgentControlAnswer)answer);
+                listener.processControlResponse(response, (AgentControlAnswer) answer);
             }
         } else if (answer instanceof PingAnswer) {
             processPingAnswer((PingAnswer) answer);
@@ -1031,14 +1057,15 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
     }
 
     public void processReadyCommand(final Command cmd) {
-        final ReadyCommand ready = (ReadyCommand)cmd;
+        final ReadyCommand ready = (ReadyCommand) cmd;
         // Set human readable sizes;
         Boolean humanReadable = ready.getEnableHumanReadableSizes();
-        if (humanReadable != null){
+        if (humanReadable != null) {
             NumbersUtil.enableHumanReadableSizes = humanReadable;
         }
 
-        logger.info("Processing agent ready command, agent id = {}, uuid = {}, name = {}", ready.getHostId(), ready.getHostUuid(), ready.getHostName());
+        logger.info("Processing agent ready command, agent id = {}, uuid = {}, name = {}", ready.getHostId(),
+                ready.getHostUuid(), ready.getHostName());
         if (ready.getHostId() != null) {
             setId(ready.getHostId());
             setUuid(ready.getHostUuid());
@@ -1046,7 +1073,8 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
         }
 
         verifyAgentArch(ready.getArch());
-        processManagementServerList(ready.getMsHostList(), ready.getAvoidMsHostList(), ready.getLbAlgorithm(), ready.getLbCheckInterval());
+        processManagementServerList(ready.getMsHostList(), ready.getAvoidMsHostList(), ready.getLbAlgorithm(),
+                ready.getLbCheckInterval());
 
         logger.info("Ready command is processed for agent [id: {}, uuid: {}, name: {}]", getId(), getUuid(), getName());
     }
@@ -1064,7 +1092,8 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
         final Object obj = task.get();
         if (obj instanceof Response) {
             if (System.currentTimeMillis() - lastPingResponseTime.get() > pingInterval * shell.getPingRetries()) {
-                logger.error("Ping Interval has gone past {}. Won't reconnect to mgt server, as connection is still alive",
+                logger.error(
+                        "Ping Interval has gone past {}. Won't reconnect to mgt server, as connection is still alive",
                         pingInterval * shell.getPingRetries());
                 return;
             }
@@ -1076,7 +1105,7 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
 
             try {
                 task.getLink().send(request.toBytes());
-                //if i can send pingcommand out, means the link is ok
+                // if i can send pingcommand out, means the link is ok
                 updateLastPingResponseTime();
             } catch (final ClosedChannelException e) {
                 logger.warn("Unable to send request to {} due to '{}', request: {}",
@@ -1084,7 +1113,7 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
             }
 
         } else if (obj instanceof Request) {
-            final Request req = (Request)obj;
+            final Request req = (Request) obj;
             final Command command = req.getCommand();
             if (command.getContextParam("logid") != null) {
                 ThreadContext.put("logcontextid", command.getContextParam("logid"));
@@ -1133,8 +1162,9 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
     }
 
     @Override
-    public AgentControlAnswer sendRequest(final AgentControlCommand cmd, final int timeoutInMilliseconds) throws AgentControlChannelException {
-        final Request request = new Request(getId(), -1, new Command[] {cmd}, true, false);
+    public AgentControlAnswer sendRequest(final AgentControlCommand cmd, final int timeoutInMilliseconds)
+            throws AgentControlChannelException {
+        final Request request = new Request(getId(), -1, new Command[] { cmd }, true, false);
         request.setSequence(getNextSequence());
         final AgentControlListener listener = new AgentControlListener(request);
         registerControlListener(listener);
@@ -1155,7 +1185,7 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
 
     @Override
     public void postRequest(final AgentControlCommand cmd) throws AgentControlChannelException {
-        final Request request = new Request(getId(), -1, new Command[] {cmd}, true, false);
+        final Request request = new Request(getId(), -1, new Command[] { cmd }, true, false);
         request.setSequence(getNextSequence());
         postRequest(request);
     }
@@ -1279,7 +1309,7 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
 
         @Override
         protected void doTask(final Task task) throws TaskExecutionException {
-            final Request req = (Request)get();
+            final Request req = (Request) get();
             if (!(req instanceof Response)) {
                 processRequest(req, task.getLink());
             }
@@ -1307,11 +1337,12 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
                 try {
                     request = Request.parse(task.getData());
                     if (request instanceof Response) {
-                        //It's for pinganswer etc, should be processed immediately.
-                        processResponse((Response)request, task.getLink());
+                        // It's for pinganswer etc, should be processed immediately.
+                        processResponse((Response) request, task.getLink());
                     } else {
-                        //put the requests from mgt server into another thread pool, as the request may take a longer time to finish. Don't block the NIO main thread pool
-                        //processRequest(request, task.getLink());
+                        // put the requests from mgt server into another thread pool, as the request may
+                        // take a longer time to finish. Don't block the NIO main thread pool
+                        // processRequest(request, task.getLink());
                         requestHandler.submit(new AgentRequestHandler(getType(), getLink(), request));
                     }
                 } catch (final ClassNotFoundException e) {
@@ -1321,7 +1352,8 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
                 }
             } else if (task.getType() == Task.Type.DISCONNECT) {
                 try {
-                    // an issue has been found if reconnect immediately after disconnecting. please refer to https://github.com/apache/cloudstack/issues/8517
+                    // an issue has been found if reconnect immediately after disconnecting. please
+                    // refer to https://github.com/apache/cloudstack/issues/8517
                     // wait 5 seconds before reconnecting
                     Thread.sleep(5000);
                 } catch (InterruptedException e) {
@@ -1358,7 +1390,8 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
                         serverResource.executeRequest(new PostCertificateRenewalCommand());
 
                         IAgentShell shell = agent.shell;
-                        ServerResource resource = agent.serverResource.getClass().getDeclaredConstructor().newInstance();
+                        ServerResource resource = agent.serverResource.getClass().getDeclaredConstructor()
+                                .newInstance();
 
                         // Stop current agent
                         agent.cancelTasks();
@@ -1377,7 +1410,8 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
                         shell.launchNewAgent(resource);
                         return;
                     }
-                    logger.debug("Other tasks are in progress, will retry post certificate renewal command after few seconds");
+                    logger.debug(
+                            "Other tasks are in progress, will retry post certificate renewal command after few seconds");
                     Thread.sleep(5000);
                 } catch (final Exception e) {
                     logger.warn("Failed to execute post certificate renewal command:", e);
@@ -1396,7 +1430,7 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
                 if (msList == null || msList.length < 1) {
                     return;
                 }
-                final String preferredMSHost  = msList[0];
+                final String preferredMSHost = msList[0];
                 final String connectedHost = shell.getConnectedHost();
                 logger.debug("Running preferred host checker task, connected host={}, preferred host={}",
                         connectedHost, preferredMSHost);
@@ -1412,7 +1446,8 @@ public class Agent implements HandlerFactory, IAgentControl, AgentStatusUpdater 
                 }
                 if (isHostUp && link != null && commandsInProgress.get() == 0) {
                     if (logger.isDebugEnabled()) {
-                        logger.debug("Preferred host {} is found to be reachable, trying to reconnect", preferredMSHost);
+                        logger.debug("Preferred host {} is found to be reachable, trying to reconnect",
+                                preferredMSHost);
                     }
                     shell.resetHostCounter();
                     reconnect(link, preferredMSHost, false);

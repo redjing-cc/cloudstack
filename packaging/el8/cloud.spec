@@ -37,11 +37,11 @@ Group:     System Environment/Libraries
 # FIXME do groups for every single one of the subpackages
 Source0:   %{name}-%{_maventag}.tgz
 BuildRoot: %{_tmppath}/%{name}-%{_maventag}-%{release}-build
-BuildArch: x86_64
+BuildArch: aarch64
 
 BuildRequires: (java-11-openjdk-devel or java-17-openjdk-devel)
 #BuildRequires: ws-commons-util
-BuildRequires: jpackage-utils
+#BuildRequires: jpackage-utils
 BuildRequires: gcc
 BuildRequires: glibc-devel
 BuildRequires: /usr/bin/mkisofs
@@ -210,8 +210,8 @@ if [ \"%{_temp}\" != "" ]; then
 fi
 
 # cj modify, skip test
-##mvn -Psystemvm,developer $FLAGS -DskipTests=true package 
-##cd ui && npm install && npm run build && cd ..
+mvn -Psystemvm,developer $FLAGS -DskipTests=true package 
+cd ui && npm install && npm run build && cd ..
 
 %install
 #[ ${RPM_BUILD_ROOT} != "/" ] && rm -rf ${RPM_BUILD_ROOT}

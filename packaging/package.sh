@@ -168,14 +168,14 @@ function packaging() {
     mkdir -p "$RPMDIR/SRPMS"
     mkdir -p "$RPMDIR/SOURCES/$PACK_PROJECT-$VERSION"
 
-    echo ". preparing source tarball""
+ #   echo ". preparing source tarball"
  #   (cd $PWD/../; tar -c --exclude .git --exclude dist . | tar -C "$RPMDIR/SOURCES/$PACK_PROJECT-$VERSION" -x )
  #   (cd "$RPMDIR/SOURCES/"; tar -czf "$PACK_PROJECT-$VERSION.tgz" "$PACK_PROJECT-$VERSION")
 
     echo ". executing rpmbuild"
-    cp "$PWD/$DISTRO/cloud.spec" "$RPMDIR/SPECS
+    cp "$PWD/$DISTRO/cloud.spec" $RPMDIR/SPECS
 
-    echo "rpmbuild --define '_topdir ${RPMDIR}' '${DEFVER}' '${DEFFULLVER}' '${DEFREL}' ${DEFPRE+'$DEFPRE'} ${DEFOSSNOSS+'$DEFOSSNOSS'} ${DEFSIM+'$DEFSIM'} ${DEFTEMP+'$DEFTEMP'}"
+#    echo "rpmbuild --define '_topdir ${RPMDIR}' '${DEFVER}' '${DEFFULLVER}' '${DEFREL}' ${DEFPRE+'$DEFPRE'} ${DEFOSSNOSS+'$DEFOSSNOSS'} ${DEFSIM+'$DEFSIM'} ${DEFTEMP+'$DEFTEMP'}"
     
     (cd "$RPMDIR"; rpmbuild --define "_topdir ${RPMDIR}" "${DEFVER}" "${DEFFULLVER}" "${DEFREL}" ${DEFPRE+"$DEFPRE"} ${DEFOSSNOSS+"$DEFOSSNOSS"} ${DEFSIM+"$DEFSIM"} ${DEFTEMP+"$DEFTEMP"} --define "_sourcedir ${SRCDIR}" --define "_builddir ${SRCDIR}" -bb SPECS/cloud.spec -v)
     if [ $? -ne 0 ]; then

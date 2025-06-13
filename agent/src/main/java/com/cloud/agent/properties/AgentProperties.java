@@ -370,7 +370,7 @@ public class AgentProperties{
      * Data type: String.<br>
      * Default value: <code>null</code>
      */
-    public static final Property<String> GUEST_CPU_MODE = new Property<>("guest.cpu.mode", null, String.class);
+    public static final Property<String> GUEST_CPU_MODE = new Property<>("guest.cpu.mode", "host-passthrough", String.class);
 
     /**
      * Custom CPU model. This param is only valid if property guest.cpu.mode=custom.<br>

@@ -54,7 +54,7 @@
           "-smp",
           "1"
         ],
-	[ "-pflash", "/usr/share/AAVMF/AAVMF_CODE.fd" ],
+  [ "-pflash", "/usr/share/edk2/aarch64/QEMU_EFI-pflash.raw" ],
 	[ "-monitor", "none" ],
 	[ "-enable-kvm" ],
 	[ "-boot", "strict=off" ]

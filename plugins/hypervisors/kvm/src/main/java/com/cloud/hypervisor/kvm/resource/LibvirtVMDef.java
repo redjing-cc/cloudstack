@@ -224,7 +224,9 @@ public class LibvirtVMDef {
                 }
                 guestDef.append(">hvm</type>\n");
                 if (_arch != null && _arch.equals("aarch64")) {
-                    guestDef.append("<loader readonly='yes' type='pflash'>/usr/share/AAVMF/AAVMF_CODE.fd</loader>\n");
+                    // cj modified in 2025/06/03
+                    // guestDef.append("<loader readonly='yes' type='pflash'>/usr/share/AAVMF/AAVMF_CODE.fd</loader>\n");
+                    guestDef.append("<loader readonly='yes' type='pflash'>/usr/share/edk2/aarch64/QEMU_EFI-pflash.raw</loader>\n");
                 }
                 if (_loader != null) {
                     if (_bootmode == BootMode.LEGACY) {

@@ -181,28 +181,32 @@ import com.sun.management.OperatingSystemMXBean;
  *
  * @startuml
  *
- * StatsCollector -> ClusterManager : register
- * ClusterManager -> StatsCollector : onManagementNodeJoined
- * StatsCollector -> list : add MS
- * ClusterManager -> StatsCollector : onManagementNodeJoined
- * StatsCollector -> list : add MS to send list
- * StatsCollector -> collector : update own status
- * StatsCollector -> list : get all ms ids
- * StatsCollector -> ClusterManager : update status for my (ms id) to all ms_ids
- * ClusterManager -> ClusterManager : update ms_ids on status on (ms id)
- * ClusterManager -> StatsCollector : onManagementNodeLeft
- * StatsCollector -> list : add MS
- * ClusterManager -> StatsCollector : status data updated for (ms id)
- * StatsCollector -> StatsCollector : update entry for (ms id)
- * ClusterManager -> StatsCollector : onManagementNodeLeft
- * StatsCollector -> list : add MS
+ *           StatsCollector -> ClusterManager : register
+ *           ClusterManager -> StatsCollector : onManagementNodeJoined
+ *           StatsCollector -> list : add MS
+ *           ClusterManager -> StatsCollector : onManagementNodeJoined
+ *           StatsCollector -> list : add MS to send list
+ *           StatsCollector -> collector : update own status
+ *           StatsCollector -> list : get all ms ids
+ *           StatsCollector -> ClusterManager : update status for my (ms id) to
+ *           all ms_ids
+ *           ClusterManager -> ClusterManager : update ms_ids on status on (ms
+ *           id)
+ *           ClusterManager -> StatsCollector : onManagementNodeLeft
+ *           StatsCollector -> list : add MS
+ *           ClusterManager -> StatsCollector : status data updated for (ms id)
+ *           StatsCollector -> StatsCollector : update entry for (ms id)
+ *           ClusterManager -> StatsCollector : onManagementNodeLeft
+ *           StatsCollector -> list : add MS
  * @enduml
  */
 @Component
-public class StatsCollector extends ManagerBase implements ComponentMethodInterceptable, Configurable, DbStatsCollection {
+public class StatsCollector extends ManagerBase
+        implements ComponentMethodInterceptable, Configurable, DbStatsCollection {
 
     public static enum ExternalStatsProtocol {
         NONE("none"), GRAPHITE("graphite"), INFLUXDB("influxdb");
+
         String _type;
 
         ExternalStatsProtocol(String type) {
@@ -214,7 +218,6 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
             return _type;
         }
     }
-
 
     private static final int UNDEFINED_PORT_VALUE = -1;
 
@@ -253,43 +256,64 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
 
     public static final ConfigKey<Integer> MANAGEMENT_SERVER_STATUS_COLLECTION_INTERVAL = new ConfigKey<>("Advanced",
             Integer.class, "management.server.stats.interval", "60",
-            "Time interval in seconds, for management servers stats collection. Set to <= 0 to disable management servers stats.", false);
+            "Time interval in seconds, for management servers stats collection. Set to <= 0 to disable management servers stats.",
+            false);
     private static final ConfigKey<Integer> DATABASE_SERVER_STATUS_COLLECTION_INTERVAL = new ConfigKey<>("Advanced",
             Integer.class, "database.server.stats.interval", "60",
-            "Time interval in seconds, for database servers stats collection. Set to <= 0 to disable database servers stats.", false);
+            "Time interval in seconds, for database servers stats collection. Set to <= 0 to disable database servers stats.",
+            false);
     private static final ConfigKey<Integer> DATABASE_SERVER_LOAD_HISTORY_RETENTION_NUMBER = new ConfigKey<>("Advanced",
             Integer.class, "database.server.stats.retention", "3",
             "The number of queries/seconds values to retain in history. This will define for how many periods of 'database.server.stats.interval' seconds, the queries/seconds values will be kept in memory",
             true);
-    private static final ConfigKey<Integer> vmDiskStatsInterval = new ConfigKey<>("Advanced", Integer.class, "vm.disk.stats.interval", "0",
-            "Interval (in seconds) to report vm disk statistics. Vm disk statistics will be disabled if this is set to 0 or less than 0.", false);
-    private static final ConfigKey<Integer> vmDiskStatsIntervalMin = new ConfigKey<>("Advanced", Integer.class, "vm.disk.stats.interval.min", "300",
-            "Minimal interval (in seconds) to report vm disk statistics. If vm.disk.stats.interval is smaller than this, use this to report vm disk statistics.", false);
-    private static final ConfigKey<Integer> vmNetworkStatsInterval = new ConfigKey<>("Advanced", Integer.class, "vm.network.stats.interval", "0",
-            "Interval (in seconds) to report vm network statistics (for Shared networks). Vm network statistics will be disabled if this is set to 0 or less than 0.", false);
-    private static final ConfigKey<Integer> vmNetworkStatsIntervalMin = new ConfigKey<>("Advanced", Integer.class, "vm.network.stats.interval.min", "300",
+    private static final ConfigKey<Integer> vmDiskStatsInterval = new ConfigKey<>("Advanced", Integer.class,
+            "vm.disk.stats.interval", "0",
+            "Interval (in seconds) to report vm disk statistics. Vm disk statistics will be disabled if this is set to 0 or less than 0.",
+            false);
+    private static final ConfigKey<Integer> vmDiskStatsIntervalMin = new ConfigKey<>("Advanced", Integer.class,
+            "vm.disk.stats.interval.min", "300",
+            "Minimal interval (in seconds) to report vm disk statistics. If vm.disk.stats.interval is smaller than this, use this to report vm disk statistics.",
+            false);
+    private static final ConfigKey<Integer> vmNetworkStatsInterval = new ConfigKey<>("Advanced", Integer.class,
+            "vm.network.stats.interval", "0",
+            "Interval (in seconds) to report vm network statistics (for Shared networks). Vm network statistics will be disabled if this is set to 0 or less than 0.",
+            false);
+    private static final ConfigKey<Integer> vmNetworkStatsIntervalMin = new ConfigKey<>("Advanced", Integer.class,
+            "vm.network.stats.interval.min", "300",
             "Minimal Interval (in seconds) to report vm network statistics (for Shared networks). If vm.network.stats.interval is smaller than this, use this to report vm network statistics.",
             false);
-    private static final ConfigKey<Integer> StatsTimeout = new ConfigKey<>("Advanced", Integer.class, "stats.timeout", "60000",
+    private static final ConfigKey<Integer> StatsTimeout = new ConfigKey<>("Advanced", Integer.class, "stats.timeout",
+            "60000",
             "The timeout for stats call in milli seconds.", true,
             ConfigKey.Scope.Cluster);
-    private static final ConfigKey<String> statsOutputUri = new ConfigKey<>("Advanced", String.class, "stats.output.uri", "",
+    private static final ConfigKey<String> statsOutputUri = new ConfigKey<>("Advanced", String.class,
+            "stats.output.uri", "",
             "URI to send StatsCollector statistics to. The collector is defined on the URI scheme. Example: graphite://graphite-hostaddress:port or influxdb://influxdb-hostaddress/dbname. Note that the port is optional, if not added the default port for the respective collector (graphite or influxdb) will be used. Additionally, the database name '/dbname' is  also optional; default db name is 'cloudstack'. You must create and configure the database if using influxdb.",
             true);
-    protected static ConfigKey<Boolean> vmStatsIncrementMetrics = new ConfigKey<>("Advanced", Boolean.class, "vm.stats.increment.metrics", "false",
+    protected static ConfigKey<Boolean> vmStatsIncrementMetrics = new ConfigKey<>("Advanced", Boolean.class,
+            "vm.stats.increment.metrics", "false",
             "When set to 'true', VM metrics(NetworkReadKBs, NetworkWriteKBs, DiskWriteKBs, DiskReadKBs, DiskReadIOs and DiskWriteIOs) that are collected from the hypervisor are summed before being returned."
-                    + "On the other hand, when set to 'false', the VM metrics API will just display the latest metrics collected.", true);
-    protected static ConfigKey<Integer> vmStatsMaxRetentionTime = new ConfigKey<>("Advanced", Integer.class, "vm.stats.max.retention.time", "720",
-            "The maximum time (in minutes) for keeping VM stats records in the database. The VM stats cleanup process will be disabled if this is set to 0 or less than 0.", true);
+                    + "On the other hand, when set to 'false', the VM metrics API will just display the latest metrics collected.",
+            true);
+    protected static ConfigKey<Integer> vmStatsMaxRetentionTime = new ConfigKey<>("Advanced", Integer.class,
+            "vm.stats.max.retention.time", "720",
+            "The maximum time (in minutes) for keeping VM stats records in the database. The VM stats cleanup process will be disabled if this is set to 0 or less than 0.",
+            true);
 
-    protected static ConfigKey<Boolean> vmStatsCollectUserVMOnly = new ConfigKey<>("Advanced", Boolean.class, "vm.stats.user.vm.only", "false",
-            "When set to 'false' stats for system VMs will be collected otherwise stats collection will be done only for user VMs", true);
+    protected static ConfigKey<Boolean> vmStatsCollectUserVMOnly = new ConfigKey<>("Advanced", Boolean.class,
+            "vm.stats.user.vm.only", "false",
+            "When set to 'false' stats for system VMs will be collected otherwise stats collection will be done only for user VMs",
+            true);
 
-    protected static ConfigKey<Boolean> vmDiskStatsRetentionEnabled = new ConfigKey<>("Advanced", Boolean.class, "vm.disk.stats.retention.enabled", "false",
-            "When set to 'true' stats for VM disks will be stored in the database otherwise disk stats will not be stored", true);
+    protected static ConfigKey<Boolean> vmDiskStatsRetentionEnabled = new ConfigKey<>("Advanced", Boolean.class,
+            "vm.disk.stats.retention.enabled", "false",
+            "When set to 'true' stats for VM disks will be stored in the database otherwise disk stats will not be stored",
+            true);
 
-    protected static ConfigKey<Integer> vmDiskStatsMaxRetentionTime = new ConfigKey<>("Advanced", Integer.class, "vm.disk.stats.max.retention.time", "720",
-            "The maximum time (in minutes) for keeping VM disks stats records in the database. The VM disks stats cleanup process will be disabled if this is set to 0 or less than 0.", true);
+    protected static ConfigKey<Integer> vmDiskStatsMaxRetentionTime = new ConfigKey<>("Advanced", Integer.class,
+            "vm.disk.stats.max.retention.time", "720",
+            "The maximum time (in minutes) for keeping VM disks stats records in the database. The VM disks stats cleanup process will be disabled if this is set to 0 or less than 0.",
+            true);
 
     private static StatsCollector s_instance = null;
 
@@ -379,7 +403,7 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
     private int _usageAggregationRange = 1440;
     private String _usageTimeZone = "GMT";
     private final long mgmtSrvrId = MacAddress.getMacAddress().toLong();
-    private static final int ACQUIRE_GLOBAL_LOCK_TIMEOUT_FOR_COOPERATION = 5;    // 5 seconds
+    private static final int ACQUIRE_GLOBAL_LOCK_TIMEOUT_FOR_COOPERATION = 5; // 5 seconds
     private boolean _dailyOrHourly = false;
     protected long managementServerNodeId = ManagementServerNode.getManagementServerId();
     protected long msId = managementServerNodeId;
@@ -408,6 +432,7 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
         registerAll("jvm", new JvmAttributeGaugeSet(), METRIC_REGISTRY);
         return true;
     }
+
     @Override
     public boolean stop() {
         _executor.shutdown();
@@ -449,7 +474,8 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
                 try {
                     externalStatsType = ExternalStatsProtocol.valueOf(externalStatsScheme.toUpperCase());
                 } catch (IllegalArgumentException e) {
-                    logger.error(externalStatsScheme + " is not a valid protocol for external statistics. No statistics will be send.");
+                    logger.error(externalStatsScheme
+                            + " is not a valid protocol for external statistics. No statistics will be send.");
                 }
 
                 if (StringUtils.isNotEmpty(uri.getHost())) {
@@ -477,59 +503,74 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
         }
 
         if (hostStatsInterval > 0) {
-            _executor.scheduleWithFixedDelay(new HostCollector(), DEFAULT_INITIAL_DELAY, hostStatsInterval, TimeUnit.MILLISECONDS);
+            _executor.scheduleWithFixedDelay(new HostCollector(), DEFAULT_INITIAL_DELAY, hostStatsInterval,
+                    TimeUnit.MILLISECONDS);
         }
 
         if (vmStatsInterval > 0) {
-            _executor.scheduleWithFixedDelay(new VmStatsCollector(), DEFAULT_INITIAL_DELAY, vmStatsInterval, TimeUnit.MILLISECONDS);
+            _executor.scheduleWithFixedDelay(new VmStatsCollector(), DEFAULT_INITIAL_DELAY, vmStatsInterval,
+                    TimeUnit.MILLISECONDS);
         } else {
-            logger.info("Skipping collect VM stats. The global parameter vm.stats.interval is set to 0 or less than 0.");
+            logger.info(
+                    "Skipping collect VM stats. The global parameter vm.stats.interval is set to 0 or less than 0.");
         }
 
         _executor.scheduleWithFixedDelay(new VmStatsCleaner(), DEFAULT_INITIAL_DELAY, 60000L, TimeUnit.MILLISECONDS);
 
-        _executor.scheduleWithFixedDelay(new VolumeStatsCleaner(), DEFAULT_INITIAL_DELAY, 60000L, TimeUnit.MILLISECONDS);
+        _executor.scheduleWithFixedDelay(new VolumeStatsCleaner(), DEFAULT_INITIAL_DELAY, 60000L,
+                TimeUnit.MILLISECONDS);
 
         scheduleCollection(MANAGEMENT_SERVER_STATUS_COLLECTION_INTERVAL, new ManagementServerCollector(), 1L);
         scheduleCollection(DATABASE_SERVER_STATUS_COLLECTION_INTERVAL, new DbCollector(), 0L);
 
         if (storageStatsInterval > 0) {
-            _executor.scheduleWithFixedDelay(new StorageCollector(), DEFAULT_INITIAL_DELAY, storageStatsInterval, TimeUnit.MILLISECONDS);
+            _executor.scheduleWithFixedDelay(new StorageCollector(), DEFAULT_INITIAL_DELAY, storageStatsInterval,
+                    TimeUnit.MILLISECONDS);
         }
 
         if (autoScaleStatsInterval > 0) {
-            _executor.scheduleWithFixedDelay(new AutoScaleMonitor(), DEFAULT_INITIAL_DELAY, autoScaleStatsInterval * 1000L, TimeUnit.MILLISECONDS);
+            _executor.scheduleWithFixedDelay(new AutoScaleMonitor(), DEFAULT_INITIAL_DELAY,
+                    autoScaleStatsInterval * 1000L, TimeUnit.MILLISECONDS);
         }
 
         if (vmDiskStatsInterval.value() > 0) {
             if (vmDiskStatsInterval.value() < vmDiskStatsIntervalMin.value()) {
-                logger.debug("vm.disk.stats.interval - " + vmDiskStatsInterval.value() + " is smaller than vm.disk.stats.interval.min - " + vmDiskStatsIntervalMin.value()
+                logger.debug("vm.disk.stats.interval - " + vmDiskStatsInterval.value()
+                        + " is smaller than vm.disk.stats.interval.min - " + vmDiskStatsIntervalMin.value()
                         + ", so use vm.disk.stats.interval.min");
-                _executor.scheduleAtFixedRate(new VmDiskStatsTask(), vmDiskStatsIntervalMin.value(), vmDiskStatsIntervalMin.value(), TimeUnit.SECONDS);
+                _executor.scheduleAtFixedRate(new VmDiskStatsTask(), vmDiskStatsIntervalMin.value(),
+                        vmDiskStatsIntervalMin.value(), TimeUnit.SECONDS);
             } else {
-                _executor.scheduleAtFixedRate(new VmDiskStatsTask(), vmDiskStatsInterval.value(), vmDiskStatsInterval.value(), TimeUnit.SECONDS);
+                _executor.scheduleAtFixedRate(new VmDiskStatsTask(), vmDiskStatsInterval.value(),
+                        vmDiskStatsInterval.value(), TimeUnit.SECONDS);
             }
         } else {
-            logger.debug("vm.disk.stats.interval - " + vmDiskStatsInterval.value() + " is 0 or less than 0, so not scheduling the vm disk stats thread");
+            logger.debug("vm.disk.stats.interval - " + vmDiskStatsInterval.value()
+                    + " is 0 or less than 0, so not scheduling the vm disk stats thread");
         }
 
         if (vmNetworkStatsInterval.value() > 0) {
             if (vmNetworkStatsInterval.value() < vmNetworkStatsIntervalMin.value()) {
-                logger.debug("vm.network.stats.interval - " + vmNetworkStatsInterval.value() + " is smaller than vm.network.stats.interval.min - "
+                logger.debug("vm.network.stats.interval - " + vmNetworkStatsInterval.value()
+                        + " is smaller than vm.network.stats.interval.min - "
                         + vmNetworkStatsIntervalMin.value() + ", so use vm.network.stats.interval.min");
-                _executor.scheduleAtFixedRate(new VmNetworkStatsTask(), vmNetworkStatsIntervalMin.value(), vmNetworkStatsIntervalMin.value(), TimeUnit.SECONDS);
+                _executor.scheduleAtFixedRate(new VmNetworkStatsTask(), vmNetworkStatsIntervalMin.value(),
+                        vmNetworkStatsIntervalMin.value(), TimeUnit.SECONDS);
             } else {
-                _executor.scheduleAtFixedRate(new VmNetworkStatsTask(), vmNetworkStatsInterval.value(), vmNetworkStatsInterval.value(), TimeUnit.SECONDS);
+                _executor.scheduleAtFixedRate(new VmNetworkStatsTask(), vmNetworkStatsInterval.value(),
+                        vmNetworkStatsInterval.value(), TimeUnit.SECONDS);
             }
         } else {
-            logger.debug("vm.network.stats.interval - " + vmNetworkStatsInterval.value() + " is 0 or less than 0, so not scheduling the vm network stats thread");
+            logger.debug("vm.network.stats.interval - " + vmNetworkStatsInterval.value()
+                    + " is 0 or less than 0, so not scheduling the vm network stats thread");
         }
 
         if (volumeStatsInterval > 0) {
-            _executor.scheduleAtFixedRate(new VolumeStatsTask(), DEFAULT_INITIAL_DELAY, volumeStatsInterval, TimeUnit.MILLISECONDS);
+            _executor.scheduleAtFixedRate(new VolumeStatsTask(), DEFAULT_INITIAL_DELAY, volumeStatsInterval,
+                    TimeUnit.MILLISECONDS);
         }
 
-        //Schedule disk stats update task
+        // Schedule disk stats update task
         _diskStatsUpdateExecutor = Executors.newScheduledThreadPool(1, new NamedThreadFactory("DiskStatsUpdater"));
 
         String aggregationRange = configs.get("usage.stats.job.aggregation.range");
@@ -564,36 +605,41 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
             _dailyOrHourly = false;
         }
         if (_usageAggregationRange < UsageUtils.USAGE_AGGREGATION_RANGE_MIN) {
-            logger.warn("Usage stats job aggregation range is to small, using the minimum value of " + UsageUtils.USAGE_AGGREGATION_RANGE_MIN);
+            logger.warn("Usage stats job aggregation range is to small, using the minimum value of "
+                    + UsageUtils.USAGE_AGGREGATION_RANGE_MIN);
             _usageAggregationRange = UsageUtils.USAGE_AGGREGATION_RANGE_MIN;
         }
 
         long period = _usageAggregationRange * ONE_MINUTE_IN_MILLISCONDS;
-        _diskStatsUpdateExecutor.scheduleAtFixedRate(new VmDiskStatsUpdaterTask(), (endDate - System.currentTimeMillis()), period, TimeUnit.MILLISECONDS);
+        _diskStatsUpdateExecutor.scheduleAtFixedRate(new VmDiskStatsUpdaterTask(),
+                (endDate - System.currentTimeMillis()), period, TimeUnit.MILLISECONDS);
 
         ManagementServerHostVO mgmtServerVo = managementServerHostDao.findByMsid(managementServerNodeId);
         if (mgmtServerVo != null) {
             msId = mgmtServerVo.getId();
         } else {
             logger.warn(String.format("Cannot find management server with msid [%s]. "
-                    + "Therefore, VM stats will be recorded with the management server MAC address converted as a long in the mgmt_server_id column.", managementServerNodeId));
+                    + "Therefore, VM stats will be recorded with the management server MAC address converted as a long in the mgmt_server_id column.",
+                    managementServerNodeId));
         }
     }
 
-    private void scheduleCollection(ConfigKey<Integer> statusCollectionInterval, AbstractStatsCollector collector, long delay) {
+    private void scheduleCollection(ConfigKey<Integer> statusCollectionInterval, AbstractStatsCollector collector,
+            long delay) {
         if (statusCollectionInterval.value() > 0) {
             _executor.scheduleAtFixedRate(collector,
                     delay,
                     statusCollectionInterval.value(),
                     TimeUnit.SECONDS);
         } else {
-                logger.debug(String.format("%s - %d is 0 or less, so not scheduling the status collector thread",
-                        statusCollectionInterval.key(), statusCollectionInterval.value()));
+            logger.debug(String.format("%s - %d is 0 or less, so not scheduling the status collector thread",
+                    statusCollectionInterval.key(), statusCollectionInterval.value()));
         }
     }
 
     /**
-     * Configures the database name according to the URI path. For instance, if the URI is as influxdb://address:port/dbname, the database name will be 'dbname'.
+     * Configures the database name according to the URI path. For instance, if the
+     * URI is as influxdb://address:port/dbname, the database name will be 'dbname'.
      */
     protected String configureDatabaseName(URI uri) {
         String dbname = StringUtils.removeStart(uri.getPath(), "/");
@@ -605,9 +651,11 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
     }
 
     /**
-     * Configures the port to be used when connecting with the stats collector service.
+     * Configures the port to be used when connecting with the stats collector
+     * service.
      * Default values are 8086 for influx DB and 2003 for GraphiteDB.
-     * Throws URISyntaxException in case of non configured port and external StatsType
+     * Throws URISyntaxException in case of non configured port and external
+     * StatsType
      */
     protected int retrieveExternalStatsPortFromUri(URI uri) throws URISyntaxException {
         int port = uri.getPort();
@@ -703,48 +751,49 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
         }
     }
 
-     class DbCollector extends AbstractStatsCollector {
-         List<Double> loadHistory = new ArrayList<>();
-         DbCollector() {
-             dbStats.put(loadAvarages, loadHistory);
-         }
-         @Override
-         protected void runInContext() {
-             logger.debug(String.format("%s is running...", this.getClass().getSimpleName()));
+    class DbCollector extends AbstractStatsCollector {
+        List<Double> loadHistory = new ArrayList<>();
 
-             try {
-                 long lastUptime = (dbStats.containsKey(uptime) ? (Long) dbStats.get(uptime) : 0);
-                 long lastQueries = (dbStats.containsKey(queries) ? (Long) dbStats.get(queries) : 0);
-                 getDynamicDataFromDB();
-                 long interval = (Long) dbStats.get(uptime) - lastUptime;
-                 long activity = (Long) dbStats.get(queries) - lastQueries;
-                 loadHistory.add(0, interval == 0 ? -1 : Double.valueOf(activity / interval));
-                 int maxsize = DATABASE_SERVER_LOAD_HISTORY_RETENTION_NUMBER.value();
-                 while (loadHistory.size() > maxsize) {
-                     loadHistory.remove(maxsize);
-                 }
-             } catch (Throwable e) {
-                 // pokemon catch to make sure the thread stays running
-                 logger.error("db statistics collection failed due to " + e.getLocalizedMessage());
-                 if (logger.isDebugEnabled()) {
-                     logger.debug("db statistics collection failed.", e);
-                 }
-             }
-         }
+        DbCollector() {
+            dbStats.put(loadAvarages, loadHistory);
+        }
 
-         private void getDynamicDataFromDB() {
-             Map<String, String> stats = DbUtil.getDbInfo("STATUS", queries, uptime);
-             dbStats.put(collectionTime, new Date());
-             dbStats.put(queries, (Long.valueOf(stats.get(queries))));
-             dbStats.put(uptime, (Long.valueOf(stats.get(uptime))));
-         }
+        @Override
+        protected void runInContext() {
+            logger.debug(String.format("%s is running...", this.getClass().getSimpleName()));
 
+            try {
+                long lastUptime = (dbStats.containsKey(uptime) ? (Long) dbStats.get(uptime) : 0);
+                long lastQueries = (dbStats.containsKey(queries) ? (Long) dbStats.get(queries) : 0);
+                getDynamicDataFromDB();
+                long interval = (Long) dbStats.get(uptime) - lastUptime;
+                long activity = (Long) dbStats.get(queries) - lastQueries;
+                loadHistory.add(0, interval == 0 ? -1 : Double.valueOf(activity / interval));
+                int maxsize = DATABASE_SERVER_LOAD_HISTORY_RETENTION_NUMBER.value();
+                while (loadHistory.size() > maxsize) {
+                    loadHistory.remove(maxsize);
+                }
+            } catch (Throwable e) {
+                // pokemon catch to make sure the thread stays running
+                logger.error("db statistics collection failed due to " + e.getLocalizedMessage());
+                if (logger.isDebugEnabled()) {
+                    logger.debug("db statistics collection failed.", e);
+                }
+            }
+        }
 
-         @Override
-         protected Point createInfluxDbPoint(Object metricsObject) {
-             return null;
-         }
-     }
+        private void getDynamicDataFromDB() {
+            Map<String, String> stats = DbUtil.getDbInfo("STATUS", queries, uptime);
+            dbStats.put(collectionTime, new Date());
+            dbStats.put(queries, (Long.valueOf(stats.get(queries))));
+            dbStats.put(uptime, (Long.valueOf(stats.get(uptime))));
+        }
+
+        @Override
+        protected Point createInfluxDbPoint(Object metricsObject) {
+            return null;
+        }
+    }
 
     class ManagementServerCollector extends AbstractStatsCollector {
         @Override
@@ -777,7 +826,8 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
             if (hostStatsEntry == null || mshost == null) {
                 return;
             }
-            ManagementServerStatusVO msStats = managementServerStatusDao.findByMsId(hostStatsEntry.getManagementServerHostUuid());
+            ManagementServerStatusVO msStats = managementServerStatusDao
+                    .findByMsId(hostStatsEntry.getManagementServerHostUuid());
             if (msStats == null) {
                 logger.info(String.format("creating new status info record for host %s - %s",
                         mshost.getName(),
@@ -827,7 +877,8 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
             long sessions = ApiSessionListener.getSessionCount();
             newEntry.setSessions(sessions);
             if (logger.isTraceEnabled()) {
-                logger.trace(String.format("Sessions found in Api %d vs context %d", sessions,ApiSessionListener.getNumberOfSessions()));
+                logger.trace(String.format("Sessions found in Api %d vs context %d", sessions,
+                        ApiSessionListener.getNumberOfSessions()));
             } else {
                 logger.debug("Sessions active: " + sessions);
             }
@@ -845,8 +896,10 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
             MemoryMXBean mxBean = ManagementFactory.getMemoryMXBean();
             newEntry.setTotalInit(mxBean.getHeapMemoryUsage().getInit() + mxBean.getNonHeapMemoryUsage().getInit());
             newEntry.setTotalUsed(mxBean.getHeapMemoryUsage().getUsed() + mxBean.getNonHeapMemoryUsage().getUsed());
-            newEntry.setMaxJvmMemoryBytes(mxBean.getHeapMemoryUsage().getMax() + mxBean.getNonHeapMemoryUsage().getMax());
-            newEntry.setTotalCommitted(mxBean.getHeapMemoryUsage().getCommitted() + mxBean.getNonHeapMemoryUsage().getCommitted());
+            newEntry.setMaxJvmMemoryBytes(
+                    mxBean.getHeapMemoryUsage().getMax() + mxBean.getNonHeapMemoryUsage().getMax());
+            newEntry.setTotalCommitted(
+                    mxBean.getHeapMemoryUsage().getCommitted() + mxBean.getNonHeapMemoryUsage().getCommitted());
         }
 
         private void getCpuData(@NotNull ManagementServerHostStatsEntry newEntry) {
@@ -872,7 +925,8 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
                     newEntry.setSystemMemoryUsed(mxBean.getCommittedVirtualMemorySize());
                 }
                 if (logger.isTraceEnabled()) {
-                    logger.trace(String.format("data from 'OperatingSystemMXBean': total mem: %d, free mem: %d, used mem: %d",
+                    logger.trace(String.format(
+                            "data from 'OperatingSystemMXBean': total mem: %d, free mem: %d, used mem: %d",
                             newEntry.getSystemMemoryTotal(),
                             newEntry.getSystemMemoryFree(),
                             newEntry.getSystemMemoryUsed()));
@@ -901,7 +955,7 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
             newEntry.setTotalJvmMemoryBytes(runtime.totalMemory());
             newEntry.setFreeJvmMemoryBytes(runtime.freeMemory());
             newEntry.setMaxJvmMemoryBytes(runtime.maxMemory());
-            //long maxMem = runtime.maxMemory();
+            // long maxMem = runtime.maxMemory();
             if (logger.isTraceEnabled()) {
                 logger.trace(String.format(
                         "Metrics proc - %d , maxMem - %d , totalMemory - %d , freeMemory - %f ",
@@ -918,19 +972,25 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
          * @param newEntry item to add the information to
          */
         private void getProcFileSystemData(@NotNull ManagementServerHostStatsEntry newEntry) {
-            // this should be taken from ("cat /proc/version"), not sure how standard this /etc entry is
-            String OS = Script.runSimpleBashScript("cat /etc/os-release | grep PRETTY_NAME | cut -f2 -d '=' | tr -d '\"'");
+            // this should be taken from ("cat /proc/version"), not sure how standard this
+            // /etc entry is
+            String OS = Script
+                    .runSimpleBashScript("cat /etc/os-release | grep PRETTY_NAME | cut -f2 -d '=' | tr -d '\"'");
             newEntry.setOsDistribution(OS);
             String kernel = Script.runSimpleBashScript("uname -r");
             newEntry.setKernelVersion(kernel);
             // if we got these from the bean, skip
             if (newEntry.getSystemMemoryTotal() == 0) {
-                String mem = Script.runSimpleBashScript("cat /proc/meminfo | grep MemTotal | cut -f 2 -d ':' | tr -d 'a-zA-z '").trim();
+                String mem = Script
+                        .runSimpleBashScript("cat /proc/meminfo | grep MemTotal | cut -f 2 -d ':' | tr -d 'a-zA-z '")
+                        .trim();
                 newEntry.setSystemMemoryTotal(Long.parseLong(mem) * ByteScaleUtils.KiB);
                 logger.info(String.format("system memory from /proc: %d", newEntry.getSystemMemoryTotal()));
             }
             if (newEntry.getSystemMemoryFree() == 0) {
-                String free = Script.runSimpleBashScript("cat /proc/meminfo | grep MemFree | cut -f 2 -d ':' | tr -d 'a-zA-z '").trim();
+                String free = Script
+                        .runSimpleBashScript("cat /proc/meminfo | grep MemFree | cut -f 2 -d ':' | tr -d 'a-zA-z '")
+                        .trim();
                 newEntry.setSystemMemoryFree(Long.parseLong(free) * ByteScaleUtils.KiB);
                 logger.info(String.format("free memory from /proc: %d", newEntry.getSystemMemoryFree()));
             }
@@ -958,32 +1018,40 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
                 logger.trace(
                         String.format("cpu\ncapacities: %f\n     loads: %s ; %s ; %s\n     stats: %d ; %d ; %d",
                                 newEntry.getSystemTotalCpuCycles(),
-                                newEntry.getSystemLoadAverages()[0], newEntry.getSystemLoadAverages()[1], newEntry.getSystemLoadAverages()[2],
-                                newEntry.getSystemCyclesUsage()[0], newEntry.getSystemCyclesUsage()[1], newEntry.getSystemCyclesUsage()[2]
-                        )
-                );
+                                newEntry.getSystemLoadAverages()[0], newEntry.getSystemLoadAverages()[1],
+                                newEntry.getSystemLoadAverages()[2],
+                                newEntry.getSystemCyclesUsage()[0], newEntry.getSystemCyclesUsage()[1],
+                                newEntry.getSystemCyclesUsage()[2]));
             }
         }
 
         @NotNull
         private double[] getCpuLoads() {
             String[] cpuloadString = Script.runSimpleBashScript("cat /proc/loadavg").split(" ");
-            double[] cpuloads = {Double.parseDouble(cpuloadString[0]), Double.parseDouble(cpuloadString[1]), Double.parseDouble(cpuloadString[2])};
+            double[] cpuloads = { Double.parseDouble(cpuloadString[0]), Double.parseDouble(cpuloadString[1]),
+                    Double.parseDouble(cpuloadString[2]) };
             return cpuloads;
         }
 
-        private long [] getSystemCpuUsage() {
-            String[] cpustats = Script.runSimpleBashScript("cat /proc/stat | grep \"cpu \" | tr -d \"cpu\"").trim().split(" ");
-            long [] cycleUsage = {Long.parseLong(cpustats[0]) + Long.parseLong(cpustats[1]), Long.parseLong(cpustats[2]), Long.parseLong(cpustats[3])};
+        private long[] getSystemCpuUsage() {
+            String[] cpustats = Script.runSimpleBashScript("cat /proc/stat | grep \"cpu \" | tr -d \"cpu\"").trim()
+                    .split(" ");
+            long[] cycleUsage = { Long.parseLong(cpustats[0]) + Long.parseLong(cpustats[1]),
+                    Long.parseLong(cpustats[2]), Long.parseLong(cpustats[3]) };
             return cycleUsage;
         }
 
         private double getSystemCpuCyclesTotal() {
-            String cpucaps = Script.runSimpleBashScript("cat /proc/cpuinfo | grep \"cpu MHz\" | grep \"cpu MHz\" | cut -f 2 -d : | tr -d ' '| tr '\\n' \" \"");
+            String cpucaps = Script.runSimpleBashScript(
+                    "cat /proc/cpuinfo | grep \"cpu MHz\" | grep \"cpu MHz\" | cut -f 2 -d : | tr -d ' '| tr '\\n' \" \"");
             double totalcpucap = 0;
             if (StringUtils.isEmpty(cpucaps)) {
                 String totalCpus = Script.runSimpleBashScript("nproc --all| tr '\\n' \" \"");
-                String maxCpuSpeed = Script.runSimpleBashScript("lscpu | egrep 'CPU max MHz' | head -1 | cut -f 2 -d : | tr -d ' '| tr '\\n' \" \"");
+                // cj modified in 2025/06/03
+                // String maxCpuSpeed = Script.runSimpleBashScript("lscpu | egrep 'CPU max MHz'
+                // | head -1 | cut -f 2 -d : | tr -d ' '| tr '\\n' \" \"");
+                String maxCpuSpeed = Script.runSimpleBashScript(
+                        "lscpu | grep -E 'CPU max MHz' | head -1 | cut -f 2 -d : | tr -d ' '| tr '\\n' \" \"");
                 if (StringUtils.isNotEmpty(totalCpus) && StringUtils.isNotEmpty(maxCpuSpeed)) {
                     totalcpucap = Double.parseDouble(totalCpus) * Double.parseDouble(maxCpuSpeed);
                 }
@@ -1000,7 +1068,9 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
             StringBuilder logInfoBuilder = new StringBuilder();
             for (String fileName : logFileNames) {
                 String du = Script.runSimpleBashScript(String.format("du -sh %s | cut -f '1'", fileName));
-                String df = Script.runSimpleBashScript(String.format("df -h %s | grep -v Filesystem | awk '{print \"on disk \" $1 \" mounted on \" $6 \" (\" $5 \" full)\"}'", fileName));
+                String df = Script.runSimpleBashScript(String.format(
+                        "df -h %s | grep -v Filesystem | awk '{print \"on disk \" $1 \" mounted on \" $6 \" (\" $5 \" full)\"}'",
+                        fileName));
                 logInfoBuilder.append(fileName).append(" using: ").append(du).append('\n').append(df);
             }
             newEntry.setLogInfo(logInfoBuilder.toString());
@@ -1026,10 +1096,11 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
          * store a value in the local fields of newEntry
          *
          * @param metricsEntry the stats info we need to communicate
-         * @param metricName the detail to extract
-         * @param value ;)
+         * @param metricName   the detail to extract
+         * @param value        ;)
          */
-        private void extractDetailToField(ManagementServerHostStatsEntry metricsEntry, String metricName, Object value) {
+        private void extractDetailToField(ManagementServerHostStatsEntry metricsEntry, String metricName,
+                Object value) {
             switch (metricName) {
                 case "memoryheap.used":
                     metricsEntry.setHeapMemoryUsed((Long) value);
@@ -1073,20 +1144,23 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
                      * 'gc.G1-Young-Generation.time'=678 type=Long
                      * 'jvm.name'=532601@matah type=String
                      * 'jvm.uptime'=272482 type=Long
-                     * 'jvm.vendor'=Red Hat, Inc. OpenJDK 64-Bit Server VM 11.0.12+7 (11) type=String
+                     * 'jvm.vendor'=Red Hat, Inc. OpenJDK 64-Bit Server VM 11.0.12+7 (11)
+                     * type=String
                      * 'memory.heap.committed'=1200619520 type=Long
                      * 'memory.heap.init'=522190848 type=Long
-                     *+ 'memoryheap.max'=4294967296 type=Long
+                     * + 'memoryheap.max'=4294967296 type=Long
                      * 'memory.heap.usage'=0.06405723094940186 type=Double
-                     *+ 'memoryheap.used'=275123712 type=Long
+                     * + 'memoryheap.used'=275123712 type=Long
                      * 'memory.non-heap.committed'=217051136 type=Long
                      * 'memory.non-heap.init'=7667712 type=Long
                      * 'memory.non-heap.max'=-1 type=Long
                      * 'memory.non-heap.usage'=-2.11503936E8 type=Double
                      * 'memory.non-heap.used'=211503936 type=Long
                      * 'memory.pools.CodeHeap-'non-nmethods'.usage'=0.3137061403508772 type=Double
-                     * 'memory.pools.CodeHeap-'non-profiled-nmethods'.usage'=0.16057488836310319 type=Double
-                     * 'memory.pools.CodeHeap-'profiled-nmethods'.usage'=0.3391885643349885 type=Double
+                     * 'memory.pools.CodeHeap-'non-profiled-nmethods'.usage'=0.16057488836310319
+                     * type=Double
+                     * 'memory.pools.CodeHeap-'profiled-nmethods'.usage'=0.3391885643349885
+                     * type=Double
                      * 'memory.pools.Compressed-Class-Space.usage'=0.012650594115257263 type=Double
                      * 'memory.pools.G1-Eden-Space.usage'=0.005822416302765648 type=Double
                      * 'memory.pools.G1-Old-Gen.usage'=0.054535746574401855 type=Double
@@ -1096,15 +1170,15 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
                      * 'memory.total.init'=529858560 type=Long
                      * 'memory.total.max'=4294967295 type=Long
                      * 'memory.total.used'=486627648 type=Long
-                     *+ 'threadsblocked.count'=1 type=Integer
-                     *+ 'threadscount'=439 type=Integer
-                     *+ 'threadsdaemon.count'=12 type=Integer
+                     * + 'threadsblocked.count'=1 type=Integer
+                     * + 'threadscount'=439 type=Integer
+                     * + 'threadsdaemon.count'=12 type=Integer
                      * 'threadsdeadlocks'=[] type=EmptySet
                      * 'threads.new.count'=0 type=Integer
-                     *+ 'threadsrunnable.count'=5 type=Integer
-                     *+ 'threadsterminated.count'=0 type=Integer
+                     * + 'threadsrunnable.count'=5 type=Integer
+                     * + 'threadsterminated.count'=0 type=Integer
                      * 'threads.timed_waiting.count'=52 type=Integer
-                     *+ 'threadswaiting.count'=381 type=Integer
+                     * + 'threadswaiting.count'=381 type=Integer
                      */
                     break;
             }
@@ -1143,10 +1217,15 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
         String configeredHost = p.getProperty("db.cloud.host");
         String localHost = p.getProperty("cluster.node.IP");
         // see if these resolve to the same
-        if ("localhost".equals(configeredHost)) return true;
-        if ("127.0.0.1".equals(configeredHost)) return true;
-        if ("::1".equals(configeredHost)) return true;
-        if (StringUtils.isNotBlank(configeredHost) && StringUtils.isNotBlank(localHost) && configeredHost.equals(localHost)) return true;
+        if ("localhost".equals(configeredHost))
+            return true;
+        if ("127.0.0.1".equals(configeredHost))
+            return true;
+        if ("::1".equals(configeredHost))
+            return true;
+        if (StringUtils.isNotBlank(configeredHost) && StringUtils.isNotBlank(localHost)
+                && configeredHost.equals(localHost))
+            return true;
         return false;
     }
 
@@ -1154,16 +1233,19 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
         return DbProperties.getDbProperties();
     }
 
-    protected class ManagementServerStatusAdministrator implements ClusterManager.StatusAdministrator, ClusterManagerListener {
+    protected class ManagementServerStatusAdministrator
+            implements ClusterManager.StatusAdministrator, ClusterManagerListener {
         @Override
         public String newStatus(ClusterServicePdu pdu) {
             if (logger.isDebugEnabled()) {
-                logger.debug(String.format("StatusUpdate from %s, json: %s", pdu.getSourcePeer(), pdu.getJsonPackage()));
+                logger.debug(
+                        String.format("StatusUpdate from %s, json: %s", pdu.getSourcePeer(), pdu.getJsonPackage()));
             }
 
             ManagementServerHostStatsEntry hostStatsEntry = null;
             try {
-                hostStatsEntry = gson.fromJson(pdu.getJsonPackage(),new TypeToken<ManagementServerHostStatsEntry>(){}.getType());
+                hostStatsEntry = gson.fromJson(pdu.getJsonPackage(), new TypeToken<ManagementServerHostStatsEntry>() {
+                }.getType());
                 managementServerHostStats.put(hostStatsEntry.getManagementServerHostUuid(), hostStatsEntry);
 
                 // Update peer state to Up in mshost_peer
@@ -1178,19 +1260,23 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
         }
 
         private void updatePeerInfo(ManagementServerHostStatsEntry hostStatsEntry) {
-            // Update msId to id of the management server if msId is same as managementServerNodeId
+            // Update msId to id of the management server if msId is same as
+            // managementServerNodeId
             if (msId == managementServerNodeId) {
                 ManagementServerHostVO mgmtServerVo = managementServerHostDao.findByMsid(managementServerNodeId);
                 if (mgmtServerVo != null) {
                     msId = mgmtServerVo.getId();
                 } else {
-                    logger.warn(String.format("Cannot find management server with msid [%s]. Therefore, do not update peer info.", managementServerNodeId));
+                    logger.warn(String.format(
+                            "Cannot find management server with msid [%s]. Therefore, do not update peer info.",
+                            managementServerNodeId));
                     return;
                 }
             }
             // Update peer state to Up in mshost_peer
             if (msId != hostStatsEntry.getManagementServerHostId()) {
-                managementServerHostPeerDao.updatePeerInfo(msId, hostStatsEntry.getManagementServerHostId(), hostStatsEntry.getManagementServerRunId(), ManagementServerHost.State.Up);
+                managementServerHostPeerDao.updatePeerInfo(msId, hostStatsEntry.getManagementServerHostId(),
+                        hostStatsEntry.getManagementServerRunId(), ManagementServerHost.State.Up);
             }
         }
 
@@ -1203,7 +1289,9 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
         public void onManagementNodeLeft(List<? extends ManagementServerHost> nodeList, long selfNodeId) {
             // remove the status for those ones
             for (ManagementServerHost node : nodeList) {
-                logger.info(String.format("node %s (%s) at %s (%od) is reported to have left the cluster, invalidating status.",node.getName(), node.getUuid(), node.getServiceIP(), node.getMsid()));
+                logger.info(String.format(
+                        "node %s (%s) at %s (%od) is reported to have left the cluster, invalidating status.",
+                        node.getName(), node.getUuid(), node.getServiceIP(), node.getMsid()));
                 managementServerHostStats.remove(node.getUuid());
             }
         }
@@ -1222,7 +1310,8 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
                 SearchCriteria<HostVO> sc = createSearchCriteriaForHostTypeRoutingStateUpAndNotInMaintenance();
                 List<HostVO> hosts = _hostDao.search(sc, null);
 
-                logger.debug(String.format("VmStatsCollector is running to process VMs across %d UP hosts", hosts.size()));
+                logger.debug(
+                        String.format("VmStatsCollector is running to process VMs across %d UP hosts", hosts.size()));
 
                 Map<Object, Object> metrics = new HashMap<>();
                 for (HostVO host : hosts) {
@@ -1237,7 +1326,7 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
                         }
                         Set<Long> vmIdSet = vmStatsById.keySet();
                         for (Long vmId : vmIdSet) {
-                            VmStatsEntry statsForCurrentIteration = (VmStatsEntry)vmStatsById.get(vmId);
+                            VmStatsEntry statsForCurrentIteration = (VmStatsEntry) vmStatsById.get(vmId);
                             statsForCurrentIteration.setVmId(vmId);
                             VMInstanceVO vm = vmMap.get(vmId);
                             statsForCurrentIteration.setVmUuid(vm.getUuid());
@@ -1277,20 +1366,28 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
     }
 
     /**
-     * <p>Previously, the VM stats cleanup process was triggered during the data collection process.
-     * So, when data collection was disabled, the cleaning process was also disabled.</p>
+     * <p>
+     * Previously, the VM stats cleanup process was triggered during the data
+     * collection process.
+     * So, when data collection was disabled, the cleaning process was also
+     * disabled.
+     * </p>
      *
-     * <p>With the introduction of persistence of VM stats, as well as the provision of historical data,
-     * we created this class to allow that both the collection process and the data cleaning process
-     * can be enabled/disabled independently.</p>
+     * <p>
+     * With the introduction of persistence of VM stats, as well as the provision of
+     * historical data,
+     * we created this class to allow that both the collection process and the data
+     * cleaning process
+     * can be enabled/disabled independently.
+     * </p>
      */
-    class VmStatsCleaner extends ManagedContextRunnable{
+    class VmStatsCleaner extends ManagedContextRunnable {
         protected void runInContext() {
             cleanUpVirtualMachineStats();
         }
     }
 
-    class VolumeStatsCleaner extends ManagedContextRunnable{
+    class VolumeStatsCleaner extends ManagedContextRunnable {
         protected void runInContext() {
             cleanUpVolumeStats();
         }
@@ -1299,7 +1396,7 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
     /**
      * Gets the latest or the accumulation of the stats collected from a given VM.
      *
-     * @param vmId the specific VM.
+     * @param vmId       the specific VM.
      * @param accumulate whether or not the stats data should be accumulated.
      * @return the latest or the accumulation of the stats for the specified VM.
      */
@@ -1313,7 +1410,8 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
         if (accumulate != null) {
             return getLatestOrAccumulatedVmMetricsStats(vmStatsVOList, accumulate.booleanValue());
         }
-        return getLatestOrAccumulatedVmMetricsStats(vmStatsVOList, BooleanUtils.toBoolean(vmStatsIncrementMetrics.value()));
+        return getLatestOrAccumulatedVmMetricsStats(vmStatsVOList,
+                BooleanUtils.toBoolean(vmStatsIncrementMetrics.value()));
     }
 
     /**
@@ -1321,10 +1419,12 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
      * It extracts the stats data from the VmStatsVO.
      *
      * @param vmStatsVOList the list of VM stats.
-     * @param accumulate {@code true} if the data should be accumulated, {@code false} otherwise.
-     * @return the {@link VmStatsEntry} containing the latest or the accumulated stats.
+     * @param accumulate    {@code true} if the data should be accumulated,
+     *                      {@code false} otherwise.
+     * @return the {@link VmStatsEntry} containing the latest or the accumulated
+     *         stats.
      */
-    protected VmStatsEntry getLatestOrAccumulatedVmMetricsStats (List<VmStatsVO> vmStatsVOList, boolean accumulate) {
+    protected VmStatsEntry getLatestOrAccumulatedVmMetricsStats(List<VmStatsVO> vmStatsVOList, boolean accumulate) {
         if (accumulate) {
             return accumulateVmMetricsStats(vmStatsVOList);
         }
@@ -1359,7 +1459,8 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
             VmStatsEntry currentVmStatsEntry = gson.fromJson(vmStatsVO.getVmStatsData(), VmStatsEntry.class);
 
             vmStatsEntry.setNetworkReadKBs(vmStatsEntry.getNetworkReadKBs() + currentVmStatsEntry.getNetworkReadKBs());
-            vmStatsEntry.setNetworkWriteKBs(vmStatsEntry.getNetworkWriteKBs() + currentVmStatsEntry.getNetworkWriteKBs());
+            vmStatsEntry
+                    .setNetworkWriteKBs(vmStatsEntry.getNetworkWriteKBs() + currentVmStatsEntry.getNetworkWriteKBs());
             vmStatsEntry.setDiskReadKBs(vmStatsEntry.getDiskReadKBs() + currentVmStatsEntry.getDiskReadKBs());
             vmStatsEntry.setDiskWriteKBs(vmStatsEntry.getDiskWriteKBs() + currentVmStatsEntry.getDiskWriteKBs());
             vmStatsEntry.setDiskReadIOs(vmStatsEntry.getDiskReadIOs() + currentVmStatsEntry.getDiskReadIOs());
@@ -1374,9 +1475,10 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
             GlobalLock scanLock = GlobalLock.getInternLock("vm.disk.stats");
             try {
                 if (scanLock.lock(ACQUIRE_GLOBAL_LOCK_TIMEOUT_FOR_COOPERATION)) {
-                    //Check for ownership
-                    //msHost in UP state with min id should run the job
-                    ManagementServerHostVO msHost = managementServerHostDao.findOneInUpState(new Filter(ManagementServerHostVO.class, "id", true, 0L, 1L));
+                    // Check for ownership
+                    // msHost in UP state with min id should run the job
+                    ManagementServerHostVO msHost = managementServerHostDao
+                            .findOneInUpState(new Filter(ManagementServerHostVO.class, "id", true, 0L, 1L));
                     if (msHost == null || (msHost.getMsid() != mgmtSrvrId)) {
                         logger.debug("Skipping aggregate disk stats update");
                         scanLock.unlock();
@@ -1386,11 +1488,11 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
                         Transaction.execute(new TransactionCallbackNoReturn() {
                             @Override
                             public void doInTransactionWithoutResult(TransactionStatus status) {
-                                //get all stats with delta > 0
+                                // get all stats with delta > 0
                                 List<VmDiskStatisticsVO> updatedVmNetStats = _vmDiskStatsDao.listUpdatedStats();
                                 for (VmDiskStatisticsVO stat : updatedVmNetStats) {
                                     if (_dailyOrHourly) {
-                                        //update agg bytes
+                                        // update agg bytes
                                         stat.setAggBytesRead(stat.getCurrentBytesRead() + stat.getNetBytesRead());
                                         stat.setAggBytesWrite(stat.getCurrentBytesWrite() + stat.getNetBytesWrite());
                                         stat.setAggIORead(stat.getCurrentIORead() + stat.getNetIORead());
@@ -1415,25 +1517,30 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
         }
     }
 
-    private void logLessLatestStatDiscrepancy(String prefix, String hostName, String vmName, long reported, long stored, boolean toHumanReadable) {
+    private void logLessLatestStatDiscrepancy(String prefix, String hostName, String vmName, long reported, long stored,
+            boolean toHumanReadable) {
         if (logger.isDebugEnabled()) {
-            logger.debug(String.format("%s that's less than the last one.  Assuming something went wrong and persisting it. Host: %s . VM: %s Reported: %s Stored: %s",
-                    prefix, hostName, vmName, toHumanReadable ? toHumanReadableSize(reported) : reported, toHumanReadable ? toHumanReadableSize(stored) : stored));
+            logger.debug(String.format(
+                    "%s that's less than the last one.  Assuming something went wrong and persisting it. Host: %s . VM: %s Reported: %s Stored: %s",
+                    prefix, hostName, vmName, toHumanReadable ? toHumanReadableSize(reported) : reported,
+                    toHumanReadable ? toHumanReadableSize(stored) : stored));
         }
     }
 
     class VmDiskStatsTask extends ManagedContextRunnable {
         @Override
         protected void runInContext() {
-            //Check for ownership
-            //msHost in UP state with min id should run the job
-            ManagementServerHostVO msHost = managementServerHostDao.findOneInUpState(new Filter(ManagementServerHostVO.class, "id", true, 0L, 1L));
+            // Check for ownership
+            // msHost in UP state with min id should run the job
+            ManagementServerHostVO msHost = managementServerHostDao
+                    .findOneInUpState(new Filter(ManagementServerHostVO.class, "id", true, 0L, 1L));
             boolean persistVolumeStats = vmDiskStatsRetentionEnabled.value();
             if (msHost == null || (msHost.getMsid() != mgmtSrvrId)) {
                 logger.debug("Skipping collect vm disk stats from hosts");
                 return;
             }
-            // collect the vm disk statistics(total) from hypervisor. added by weizhou, 2013.03.
+            // collect the vm disk statistics(total) from hypervisor. added by weizhou,
+            // 2013.03.
             logger.debug("VmDiskStatsTask is running...");
 
             SearchCriteria<HostVO> sc = createSearchCriteriaForHostTypeRoutingStateUpAndNotInMaintenance();
@@ -1448,8 +1555,8 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
                         public void doInTransactionWithoutResult(TransactionStatus status) {
                             Pair<Map<Long, VMInstanceVO>, Map<String, Long>> vmsAndMap = getVmMapForStatsForHost(host);
                             Map<Long, VMInstanceVO> vmMap = vmsAndMap.first();
-                            HashMap<Long, List<? extends VmDiskStats>> vmDiskStatsById =
-                                    virtualMachineManager.getVmDiskStatistics(host, vmsAndMap.second());
+                            HashMap<Long, List<? extends VmDiskStats>> vmDiskStatsById = virtualMachineManager
+                                    .getVmDiskStatistics(host, vmsAndMap.second());
                             if (vmDiskStatsById == null)
                                 return;
 
@@ -1460,7 +1567,7 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
                                     continue;
                                 VMInstanceVO vm = vmMap.get(vmId);
                                 for (VmDiskStats vmDiskStat : vmDiskStats) {
-                                    VmDiskStatsEntry vmDiskStatEntry = (VmDiskStatsEntry)vmDiskStat;
+                                    VmDiskStatsEntry vmDiskStatEntry = (VmDiskStatsEntry) vmDiskStat;
                                     SearchCriteria<VolumeVO> sc_volume = _volsDao.createSearchCriteria();
                                     sc_volume.addAnd("path", SearchCriteria.Op.EQ, vmDiskStatEntry.getPath());
                                     List<VolumeVO> volumes = _volsDao.search(sc_volume, null);
@@ -1469,57 +1576,88 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
                                         break;
 
                                     VolumeVO volume = volumes.get(0);
-                                    VmDiskStatisticsVO previousVmDiskStats = _vmDiskStatsDao.findBy(vm.getAccountId(), vm.getDataCenterId(), vmId, volume.getId());
-                                    VmDiskStatisticsVO vmDiskStat_lock = _vmDiskStatsDao.lock(vm.getAccountId(), vm.getDataCenterId(), vmId, volume.getId());
+                                    VmDiskStatisticsVO previousVmDiskStats = _vmDiskStatsDao.findBy(vm.getAccountId(),
+                                            vm.getDataCenterId(), vmId, volume.getId());
+                                    VmDiskStatisticsVO vmDiskStat_lock = _vmDiskStatsDao.lock(vm.getAccountId(),
+                                            vm.getDataCenterId(), vmId, volume.getId());
 
                                     if (persistVolumeStats) {
-                                        persistVolumeStats(volume.getId(), vmDiskStatEntry, vm.getHypervisorType(), timestamp);
+                                        persistVolumeStats(volume.getId(), vmDiskStatEntry, vm.getHypervisorType(),
+                                                timestamp);
                                     }
 
                                     if (areAllDiskStatsZero(vmDiskStatEntry)) {
-                                        logger.debug("IO/bytes read and write are all 0. Not updating vm_disk_statistics");
+                                        logger.debug(
+                                                "IO/bytes read and write are all 0. Not updating vm_disk_statistics");
                                         continue;
                                     }
 
                                     if (vmDiskStat_lock == null) {
-                                        logger.warn("unable to find vm disk stats from host for account: {} with vm: {} and volume: {}", vm.getAccountId(), vm, volume);
+                                        logger.warn(
+                                                "unable to find vm disk stats from host for account: {} with vm: {} and volume: {}",
+                                                vm.getAccountId(), vm, volume);
                                         continue;
                                     }
 
-                                    if (isCurrentVmDiskStatsDifferentFromPrevious(previousVmDiskStats, vmDiskStat_lock)) {
-                                        logger.debug("vm disk stats changed from the time GetVmDiskStatsCommand was sent. " + "Ignoring current answer. Host: " + host.getName()
-                                                + " . VM: " + vmDiskStatEntry.getVmName() + " Read(Bytes): " + toHumanReadableSize(vmDiskStatEntry.getBytesRead()) + " write(Bytes): " + toHumanReadableSize(vmDiskStatEntry.getBytesWrite())
-                                                + " Read(IO): " + toHumanReadableSize(vmDiskStatEntry.getIORead()) + " write(IO): " + toHumanReadableSize(vmDiskStatEntry.getIOWrite()));
+                                    if (isCurrentVmDiskStatsDifferentFromPrevious(previousVmDiskStats,
+                                            vmDiskStat_lock)) {
+                                        logger.debug(
+                                                "vm disk stats changed from the time GetVmDiskStatsCommand was sent. "
+                                                        + "Ignoring current answer. Host: " + host.getName()
+                                                        + " . VM: " + vmDiskStatEntry.getVmName() + " Read(Bytes): "
+                                                        + toHumanReadableSize(vmDiskStatEntry.getBytesRead())
+                                                        + " write(Bytes): "
+                                                        + toHumanReadableSize(vmDiskStatEntry.getBytesWrite())
+                                                        + " Read(IO): "
+                                                        + toHumanReadableSize(vmDiskStatEntry.getIORead())
+                                                        + " write(IO): "
+                                                        + toHumanReadableSize(vmDiskStatEntry.getIOWrite()));
                                         continue;
                                     }
 
                                     if (vmDiskStat_lock.getCurrentBytesRead() > vmDiskStatEntry.getBytesRead()) {
-                                        logLessLatestStatDiscrepancy("Read # of bytes", host.getName(), vmDiskStatEntry.getVmName(), vmDiskStatEntry.getBytesRead(), vmDiskStat_lock.getCurrentBytesRead(), true);
-                                        vmDiskStat_lock.setNetBytesRead(vmDiskStat_lock.getNetBytesRead() + vmDiskStat_lock.getCurrentBytesRead());
+                                        logLessLatestStatDiscrepancy("Read # of bytes", host.getName(),
+                                                vmDiskStatEntry.getVmName(), vmDiskStatEntry.getBytesRead(),
+                                                vmDiskStat_lock.getCurrentBytesRead(), true);
+                                        vmDiskStat_lock.setNetBytesRead(vmDiskStat_lock.getNetBytesRead()
+                                                + vmDiskStat_lock.getCurrentBytesRead());
                                     }
                                     vmDiskStat_lock.setCurrentBytesRead(vmDiskStatEntry.getBytesRead());
                                     if (vmDiskStat_lock.getCurrentBytesWrite() > vmDiskStatEntry.getBytesWrite()) {
-                                        logLessLatestStatDiscrepancy("Write # of bytes", host.getName(), vmDiskStatEntry.getVmName(), vmDiskStatEntry.getBytesWrite(), vmDiskStat_lock.getCurrentBytesWrite(), true);
-                                        vmDiskStat_lock.setNetBytesWrite(vmDiskStat_lock.getNetBytesWrite() + vmDiskStat_lock.getCurrentBytesWrite());
+                                        logLessLatestStatDiscrepancy("Write # of bytes", host.getName(),
+                                                vmDiskStatEntry.getVmName(), vmDiskStatEntry.getBytesWrite(),
+                                                vmDiskStat_lock.getCurrentBytesWrite(), true);
+                                        vmDiskStat_lock.setNetBytesWrite(vmDiskStat_lock.getNetBytesWrite()
+                                                + vmDiskStat_lock.getCurrentBytesWrite());
                                     }
                                     vmDiskStat_lock.setCurrentBytesWrite(vmDiskStatEntry.getBytesWrite());
                                     if (vmDiskStat_lock.getCurrentIORead() > vmDiskStatEntry.getIORead()) {
-                                        logLessLatestStatDiscrepancy("Read # of IO", host.getName(), vmDiskStatEntry.getVmName(), vmDiskStatEntry.getIORead(), vmDiskStat_lock.getCurrentIORead(), false);
-                                        vmDiskStat_lock.setNetIORead(vmDiskStat_lock.getNetIORead() + vmDiskStat_lock.getCurrentIORead());
+                                        logLessLatestStatDiscrepancy("Read # of IO", host.getName(),
+                                                vmDiskStatEntry.getVmName(), vmDiskStatEntry.getIORead(),
+                                                vmDiskStat_lock.getCurrentIORead(), false);
+                                        vmDiskStat_lock.setNetIORead(
+                                                vmDiskStat_lock.getNetIORead() + vmDiskStat_lock.getCurrentIORead());
                                     }
                                     vmDiskStat_lock.setCurrentIORead(vmDiskStatEntry.getIORead());
                                     if (vmDiskStat_lock.getCurrentIOWrite() > vmDiskStatEntry.getIOWrite()) {
-                                        logLessLatestStatDiscrepancy("Write # of IO", host.getName(), vmDiskStatEntry.getVmName(), vmDiskStatEntry.getIOWrite(), vmDiskStat_lock.getCurrentIOWrite(), false);
-                                        vmDiskStat_lock.setNetIOWrite(vmDiskStat_lock.getNetIOWrite() + vmDiskStat_lock.getCurrentIOWrite());
+                                        logLessLatestStatDiscrepancy("Write # of IO", host.getName(),
+                                                vmDiskStatEntry.getVmName(), vmDiskStatEntry.getIOWrite(),
+                                                vmDiskStat_lock.getCurrentIOWrite(), false);
+                                        vmDiskStat_lock.setNetIOWrite(
+                                                vmDiskStat_lock.getNetIOWrite() + vmDiskStat_lock.getCurrentIOWrite());
                                     }
                                     vmDiskStat_lock.setCurrentIOWrite(vmDiskStatEntry.getIOWrite());
 
                                     if (!_dailyOrHourly) {
-                                        //update agg bytes
-                                        vmDiskStat_lock.setAggBytesWrite(vmDiskStat_lock.getNetBytesWrite() + vmDiskStat_lock.getCurrentBytesWrite());
-                                        vmDiskStat_lock.setAggBytesRead(vmDiskStat_lock.getNetBytesRead() + vmDiskStat_lock.getCurrentBytesRead());
-                                        vmDiskStat_lock.setAggIOWrite(vmDiskStat_lock.getNetIOWrite() + vmDiskStat_lock.getCurrentIOWrite());
-                                        vmDiskStat_lock.setAggIORead(vmDiskStat_lock.getNetIORead() + vmDiskStat_lock.getCurrentIORead());
+                                        // update agg bytes
+                                        vmDiskStat_lock.setAggBytesWrite(vmDiskStat_lock.getNetBytesWrite()
+                                                + vmDiskStat_lock.getCurrentBytesWrite());
+                                        vmDiskStat_lock.setAggBytesRead(vmDiskStat_lock.getNetBytesRead()
+                                                + vmDiskStat_lock.getCurrentBytesRead());
+                                        vmDiskStat_lock.setAggIOWrite(
+                                                vmDiskStat_lock.getNetIOWrite() + vmDiskStat_lock.getCurrentIOWrite());
+                                        vmDiskStat_lock.setAggIORead(
+                                                vmDiskStat_lock.getNetIORead() + vmDiskStat_lock.getCurrentIORead());
                                     }
 
                                     _vmDiskStatsDao.update(vmDiskStat_lock.getId(), vmDiskStat_lock);
@@ -1537,9 +1675,10 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
     class VmNetworkStatsTask extends ManagedContextRunnable {
         @Override
         protected void runInContext() {
-            //Check for ownership
-            //msHost in UP state with min id should run the job
-            ManagementServerHostVO msHost = managementServerHostDao.findOneInUpState(new Filter(ManagementServerHostVO.class, "id", true, 0L, 1L));
+            // Check for ownership
+            // msHost in UP state with min id should run the job
+            ManagementServerHostVO msHost = managementServerHostDao
+                    .findOneInUpState(new Filter(ManagementServerHostVO.class, "id", true, 0L, 1L));
             if (msHost == null || (msHost.getMsid() != mgmtSrvrId)) {
                 logger.debug("Skipping collect vm network stats from hosts");
                 return;
@@ -1557,8 +1696,8 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
                         public void doInTransactionWithoutResult(TransactionStatus status) {
                             Pair<Map<Long, VMInstanceVO>, Map<String, Long>> vmsAndMap = getVmMapForStatsForHost(host);
                             Map<Long, VMInstanceVO> vmMap = vmsAndMap.first();
-                            HashMap<Long, List<? extends VmNetworkStats>> vmNetworkStatsById =
-                                    virtualMachineManager.getVmNetworkStatistics(host, vmsAndMap.second());
+                            HashMap<Long, List<? extends VmNetworkStats>> vmNetworkStatsById = virtualMachineManager
+                                    .getVmNetworkStatistics(host, vmsAndMap.second());
                             if (vmNetworkStatsById == null)
                                 return;
 
@@ -1572,59 +1711,85 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
                                     logger.debug("Cannot find uservm with id: {} , continue", vmId);
                                     continue;
                                 }
-                                logger.debug("Now we are updating the user_statistics table for VM: {} after collecting vm network statistics from host: {}", userVm, host);
+                                logger.debug(
+                                        "Now we are updating the user_statistics table for VM: {} after collecting vm network statistics from host: {}",
+                                        userVm, host);
                                 for (VmNetworkStats vmNetworkStat : vmNetworkStats) {
-                                    VmNetworkStatsEntry vmNetworkStatEntry = (VmNetworkStatsEntry)vmNetworkStat;
+                                    VmNetworkStatsEntry vmNetworkStatEntry = (VmNetworkStatsEntry) vmNetworkStat;
                                     SearchCriteria<NicVO> sc_nic = _nicDao.createSearchCriteria();
-                                    sc_nic.addAnd("macAddress", SearchCriteria.Op.EQ, vmNetworkStatEntry.getMacAddress());
+                                    sc_nic.addAnd("macAddress", SearchCriteria.Op.EQ,
+                                            vmNetworkStatEntry.getMacAddress());
                                     NicVO nic = _nicDao.search(sc_nic, null).get(0);
                                     List<VlanVO> vlan = _vlanDao.listVlansByNetworkId(nic.getNetworkId());
-                                    if (vlan == null || vlan.size() == 0 || vlan.get(0).getVlanType() != VlanType.DirectAttached)
-                                        continue; // only get network statistics for DirectAttached network (shared networks in Basic zone and Advanced zone with/without SG)
-                                    UserStatisticsVO previousvmNetworkStats = _userStatsDao.findBy(userVm.getAccountId(), userVm.getDataCenterId(), nic.getNetworkId(),
+                                    if (vlan == null || vlan.size() == 0
+                                            || vlan.get(0).getVlanType() != VlanType.DirectAttached)
+                                        continue; // only get network statistics for DirectAttached network (shared
+                                                  // networks in Basic zone and Advanced zone with/without SG)
+                                    UserStatisticsVO previousvmNetworkStats = _userStatsDao.findBy(
+                                            userVm.getAccountId(), userVm.getDataCenterId(), nic.getNetworkId(),
                                             nic.getIPv4Address(), vmId, "UserVm");
                                     if (previousvmNetworkStats == null) {
-                                        previousvmNetworkStats = new UserStatisticsVO(userVm.getAccountId(), userVm.getDataCenterId(), nic.getIPv4Address(), vmId, "UserVm",
+                                        previousvmNetworkStats = new UserStatisticsVO(userVm.getAccountId(),
+                                                userVm.getDataCenterId(), nic.getIPv4Address(), vmId, "UserVm",
                                                 nic.getNetworkId());
                                         _userStatsDao.persist(previousvmNetworkStats);
                                     }
-                                    UserStatisticsVO vmNetworkStat_lock = _userStatsDao.lock(userVm.getAccountId(), userVm.getDataCenterId(), nic.getNetworkId(),
+                                    UserStatisticsVO vmNetworkStat_lock = _userStatsDao.lock(userVm.getAccountId(),
+                                            userVm.getDataCenterId(), nic.getNetworkId(),
                                             nic.getIPv4Address(), vmId, "UserVm");
 
-                                    if ((vmNetworkStatEntry.getBytesSent() == 0) && (vmNetworkStatEntry.getBytesReceived() == 0)) {
+                                    if ((vmNetworkStatEntry.getBytesSent() == 0)
+                                            && (vmNetworkStatEntry.getBytesReceived() == 0)) {
                                         logger.debug("bytes sent and received are all 0. Not updating user_statistics");
                                         continue;
                                     }
 
                                     if (vmNetworkStat_lock == null) {
-                                        logger.warn("unable to find vm network stats from host for account: {} with vm: {} and nic: {}", userVm.getAccountId(), userVm, nic);
+                                        logger.warn(
+                                                "unable to find vm network stats from host for account: {} with vm: {} and nic: {}",
+                                                userVm.getAccountId(), userVm, nic);
                                         continue;
                                     }
 
-                                    if (previousvmNetworkStats != null && ((previousvmNetworkStats.getCurrentBytesSent() != vmNetworkStat_lock.getCurrentBytesSent())
-                                            || (previousvmNetworkStats.getCurrentBytesReceived() != vmNetworkStat_lock.getCurrentBytesReceived()))) {
-                                        logger.debug("vm network stats changed from the time GetNmNetworkStatsCommand was sent. " + "Ignoring current answer. Host: "
-                                                + host.getName() + " . VM: " + vmNetworkStatEntry.getVmName() + " Sent(Bytes): " + vmNetworkStatEntry.getBytesSent() + " Received(Bytes): "
-                                                + vmNetworkStatEntry.getBytesReceived());
+                                    if (previousvmNetworkStats != null && ((previousvmNetworkStats
+                                            .getCurrentBytesSent() != vmNetworkStat_lock.getCurrentBytesSent())
+                                            || (previousvmNetworkStats.getCurrentBytesReceived() != vmNetworkStat_lock
+                                                    .getCurrentBytesReceived()))) {
+                                        logger.debug(
+                                                "vm network stats changed from the time GetNmNetworkStatsCommand was sent. "
+                                                        + "Ignoring current answer. Host: "
+                                                        + host.getName() + " . VM: " + vmNetworkStatEntry.getVmName()
+                                                        + " Sent(Bytes): " + vmNetworkStatEntry.getBytesSent()
+                                                        + " Received(Bytes): "
+                                                        + vmNetworkStatEntry.getBytesReceived());
                                         continue;
                                     }
 
                                     if (vmNetworkStat_lock.getCurrentBytesSent() > vmNetworkStatEntry.getBytesSent()) {
-                                        logLessLatestStatDiscrepancy("Sent # of bytes", host.getName(), vmNetworkStatEntry.getVmName(), vmNetworkStatEntry.getBytesSent(), vmNetworkStat_lock.getCurrentBytesSent(), true);
-                                        vmNetworkStat_lock.setNetBytesSent(vmNetworkStat_lock.getNetBytesSent() + vmNetworkStat_lock.getCurrentBytesSent());
+                                        logLessLatestStatDiscrepancy("Sent # of bytes", host.getName(),
+                                                vmNetworkStatEntry.getVmName(), vmNetworkStatEntry.getBytesSent(),
+                                                vmNetworkStat_lock.getCurrentBytesSent(), true);
+                                        vmNetworkStat_lock.setNetBytesSent(vmNetworkStat_lock.getNetBytesSent()
+                                                + vmNetworkStat_lock.getCurrentBytesSent());
                                     }
                                     vmNetworkStat_lock.setCurrentBytesSent(vmNetworkStatEntry.getBytesSent());
 
-                                    if (vmNetworkStat_lock.getCurrentBytesReceived() > vmNetworkStatEntry.getBytesReceived()) {
-                                        logLessLatestStatDiscrepancy("Received # of bytes", host.getName(), vmNetworkStatEntry.getVmName(), vmNetworkStatEntry.getBytesReceived(), vmNetworkStat_lock.getCurrentBytesReceived(), true);
-                                        vmNetworkStat_lock.setNetBytesReceived(vmNetworkStat_lock.getNetBytesReceived() + vmNetworkStat_lock.getCurrentBytesReceived());
+                                    if (vmNetworkStat_lock.getCurrentBytesReceived() > vmNetworkStatEntry
+                                            .getBytesReceived()) {
+                                        logLessLatestStatDiscrepancy("Received # of bytes", host.getName(),
+                                                vmNetworkStatEntry.getVmName(), vmNetworkStatEntry.getBytesReceived(),
+                                                vmNetworkStat_lock.getCurrentBytesReceived(), true);
+                                        vmNetworkStat_lock.setNetBytesReceived(vmNetworkStat_lock.getNetBytesReceived()
+                                                + vmNetworkStat_lock.getCurrentBytesReceived());
                                     }
                                     vmNetworkStat_lock.setCurrentBytesReceived(vmNetworkStatEntry.getBytesReceived());
 
                                     if (!_dailyOrHourly) {
-                                        //update agg bytes
-                                        vmNetworkStat_lock.setAggBytesReceived(vmNetworkStat_lock.getNetBytesReceived() + vmNetworkStat_lock.getCurrentBytesReceived());
-                                        vmNetworkStat_lock.setAggBytesSent(vmNetworkStat_lock.getNetBytesSent() + vmNetworkStat_lock.getCurrentBytesSent());
+                                        // update agg bytes
+                                        vmNetworkStat_lock.setAggBytesReceived(vmNetworkStat_lock.getNetBytesReceived()
+                                                + vmNetworkStat_lock.getCurrentBytesReceived());
+                                        vmNetworkStat_lock.setAggBytesSent(vmNetworkStat_lock.getNetBytesSent()
+                                                + vmNetworkStat_lock.getCurrentBytesSent());
                                     }
 
                                     _userStatsDao.update(vmNetworkStat_lock.getId(), vmNetworkStat_lock);
@@ -1648,8 +1813,10 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
                 for (StoragePoolVO pool : pools) {
                     List<VolumeVO> volumes = _volsDao.findByPoolId(pool.getId(), null);
                     for (VolumeVO volume : volumes) {
-                        if (!List.of(ImageFormat.QCOW2, ImageFormat.VHD, ImageFormat.OVA, ImageFormat.RAW).contains(volume.getFormat()) &&
-                            !List.of(Storage.StoragePoolType.PowerFlex, Storage.StoragePoolType.FiberChannel).contains(pool.getPoolType())) {
+                        if (!List.of(ImageFormat.QCOW2, ImageFormat.VHD, ImageFormat.OVA, ImageFormat.RAW)
+                                .contains(volume.getFormat()) &&
+                                !List.of(Storage.StoragePoolType.PowerFlex, Storage.StoragePoolType.FiberChannel)
+                                        .contains(pool.getPoolType())) {
                             logger.warn("Volume stats not implemented for this format type " + volume.getFormat());
                             break;
                         }
@@ -1659,13 +1826,16 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
                         if (pool.getScope() == ScopeType.ZONE) {
                             volumeStatsByUuid = new HashMap<>();
                             for (final Cluster cluster : _clusterDao.listClustersByDcId(pool.getDataCenterId())) {
-                                final Map<String, VolumeStatsEntry> volumeStatsForCluster = _userVmMgr.getVolumeStatistics(cluster.getId(), pool.getUuid(), pool.getPoolType(), StatsTimeout.value());
+                                final Map<String, VolumeStatsEntry> volumeStatsForCluster = _userVmMgr
+                                        .getVolumeStatistics(cluster.getId(), pool.getUuid(), pool.getPoolType(),
+                                                StatsTimeout.value());
                                 if (volumeStatsForCluster != null) {
                                     volumeStatsByUuid.putAll(volumeStatsForCluster);
                                 }
                             }
                         } else {
-                            volumeStatsByUuid = _userVmMgr.getVolumeStatistics(pool.getClusterId(), pool.getUuid(), pool.getPoolType(), StatsTimeout.value());
+                            volumeStatsByUuid = _userVmMgr.getVolumeStatistics(pool.getClusterId(), pool.getUuid(),
+                                    pool.getPoolType(), StatsTimeout.value());
                         }
                         if (volumeStatsByUuid != null) {
                             for (final Map.Entry<String, VolumeStatsEntry> entry : volumeStatsByUuid.entrySet()) {
@@ -1718,8 +1888,10 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
                     long storeId = store.getId();
                     Answer answer = ssAhost.sendMessage(command);
                     if (answer != null && answer.getResult()) {
-                        storageStats.put(storeId, (StorageStats)answer);
-                        logger.trace("Store: {} Used: {} Total Available: {}", store, toHumanReadableSize(((StorageStats) answer).getByteUsed()), toHumanReadableSize(((StorageStats) answer).getCapacityBytes()));
+                        storageStats.put(storeId, (StorageStats) answer);
+                        logger.trace("Store: {} Used: {} Total Available: {}", store,
+                                toHumanReadableSize(((StorageStats) answer).getByteUsed()),
+                                toHumanReadableSize(((StorageStats) answer).getCapacityBytes()));
                     }
                 }
                 updateStorageStats(storageStats);
@@ -1731,12 +1903,13 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
                     List<Long> hostIds = _storageManager.getUpHostsInPool(pool.getId());
                     if (hostIds == null || hostIds.isEmpty())
                         continue;
-                    GetStorageStatsCommand command = new GetStorageStatsCommand(pool.getUuid(), pool.getPoolType(), pool.getPath());
+                    GetStorageStatsCommand command = new GetStorageStatsCommand(pool.getUuid(), pool.getPoolType(),
+                            pool.getPath());
                     long poolId = pool.getId();
                     try {
                         Answer answer = _storageManager.sendToPool(pool, command);
                         if (answer != null && answer.getResult()) {
-                            StorageStats stats = (StorageStats)answer;
+                            StorageStats stats = (StorageStats) answer;
                             storagePoolStats.put(pool.getId(), stats);
 
                             boolean poolNeedsUpdating = false;
@@ -1744,23 +1917,31 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
                             long usedBytes = stats.getByteUsed();
                             Long capacityIops = stats.getCapacityIops();
                             Long usedIops = stats.getUsedIops();
-                            // Seems like we have dynamically updated the pool size since the prev. size and the current do not match
-                            if ((_storagePoolStats.get(poolId) != null && _storagePoolStats.get(poolId).getCapacityBytes() != capacityBytes)
+                            // Seems like we have dynamically updated the pool size since the prev. size and
+                            // the current do not match
+                            if ((_storagePoolStats.get(poolId) != null
+                                    && _storagePoolStats.get(poolId).getCapacityBytes() != capacityBytes)
                                     || pool.getCapacityBytes() != capacityBytes) {
                                 if (capacityBytes > 0) {
                                     pool.setCapacityBytes(capacityBytes);
                                     poolNeedsUpdating = true;
                                 } else {
                                     logger.warn("Not setting capacity bytes, received {} capacity for pool {}",
-                                            NumbersUtil.toReadableSize(((StorageStats)answer).getCapacityBytes()), pool);
+                                            NumbersUtil.toReadableSize(((StorageStats) answer).getCapacityBytes()),
+                                            pool);
                                 }
                             }
-                            if (((_storagePoolStats.get(poolId) != null && _storagePoolStats.get(poolId).getByteUsed() != usedBytes)
-                                    || pool.getUsedBytes() != usedBytes) && (pool.getStorageProviderName().equalsIgnoreCase(DataStoreProvider.DEFAULT_PRIMARY) || _storageManager.canPoolProvideStorageStats(pool))) {
+                            if (((_storagePoolStats.get(poolId) != null
+                                    && _storagePoolStats.get(poolId).getByteUsed() != usedBytes)
+                                    || pool.getUsedBytes() != usedBytes)
+                                    && (pool.getStorageProviderName()
+                                            .equalsIgnoreCase(DataStoreProvider.DEFAULT_PRIMARY)
+                                            || _storageManager.canPoolProvideStorageStats(pool))) {
                                 pool.setUsedBytes(usedBytes);
                                 poolNeedsUpdating = true;
                             }
-                            poolNeedsUpdating = isPoolNeedsIopsStatsUpdate(pool, capacityIops, usedIops) || poolNeedsUpdating;
+                            poolNeedsUpdating = isPoolNeedsIopsStatsUpdate(pool, capacityIops, usedIops)
+                                    || poolNeedsUpdating;
                             if (poolNeedsUpdating) {
                                 pool.setUpdateTime(new Date());
                                 _storagePoolDao.update(pool.getId(), pool);
@@ -1782,9 +1963,11 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
             for (Long storeId : storageStats.keySet()) {
                 if (_storageStats.containsKey(storeId)
                         && (_storageStats.get(storeId).getCapacityBytes() == 0l
-                        || _storageStats.get(storeId).getCapacityBytes() != storageStats.get(storeId).getCapacityBytes())) {
-                        // get add to DB rigorously
-                        _storageManager.updateImageStoreStatus(storeId, null, null, storageStats.get(storeId).getCapacityBytes());
+                                || _storageStats.get(storeId).getCapacityBytes() != storageStats.get(storeId)
+                                        .getCapacityBytes())) {
+                    // get add to DB rigorously
+                    _storageManager.updateImageStoreStatus(storeId, null, null,
+                            storageStats.get(storeId).getCapacityBytes());
                 }
             }
             // if in _storageStats and not in storageStats it gets discarded
@@ -1817,8 +2000,9 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
                 if (logger.isDebugEnabled()) {
                     logger.debug("AutoScaling Monitor is running...");
                 }
-                //msHost in UP state with min id should run the job
-                ManagementServerHostVO msHost = managementServerHostDao.findOneInUpState(new Filter(ManagementServerHostVO.class, "id", true, 0L, 1L));
+                // msHost in UP state with min id should run the job
+                ManagementServerHostVO msHost = managementServerHostDao
+                        .findOneInUpState(new Filter(ManagementServerHostVO.class, "id", true, 0L, 1L));
                 if (msHost == null || (msHost.getMsid() != mgmtSrvrId)) {
                     logger.debug("Skipping AutoScaling Monitor");
                     return;
@@ -1835,10 +2019,12 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
     }
 
     /**
-     * This class allows to writing metrics in InfluxDB for the table that matches the Collector extending it.
-     * Thus, VmStatsCollector and HostCollector can use same method to write on different measures (host_stats or vm_stats table).
+     * This class allows to writing metrics in InfluxDB for the table that matches
+     * the Collector extending it.
+     * Thus, VmStatsCollector and HostCollector can use same method to write on
+     * different measures (host_stats or vm_stats table).
      */
-    abstract class  AbstractStatsCollector extends ManagedContextRunnable {
+    abstract class AbstractStatsCollector extends ManagedContextRunnable {
         /**
          * Sends metrics to influxdb host. This method supports both VM and Host metrics
          */
@@ -1848,13 +2034,15 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
             try {
                 Pong response = influxDbConnection.ping();
                 if (response.getVersion().equalsIgnoreCase("unknown")) {
-                    throw new CloudRuntimeException(String.format("Cannot ping influxdb host %s:%s.", externalStatsHost, externalStatsPort));
+                    throw new CloudRuntimeException(
+                            String.format("Cannot ping influxdb host %s:%s.", externalStatsHost, externalStatsPort));
                 }
 
                 Collection<Object> metricsObjects = metrics.values();
                 List<Point> points = new ArrayList<>();
 
-                logger.debug(String.format("Sending stats to %s host %s:%s", externalStatsType, externalStatsHost, externalStatsPort));
+                logger.debug(String.format("Sending stats to %s host %s:%s", externalStatsType, externalStatsHost,
+                        externalStatsPort));
 
                 for (Object metricsObject : metricsObjects) {
                     Point vmPoint = createInfluxDbPoint(metricsObject);
@@ -1867,13 +2055,16 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
         }
 
         /**
-         * Creates a InfluxDB point for the given stats collector (VmStatsCollector, or HostCollector).
+         * Creates a InfluxDB point for the given stats collector (VmStatsCollector, or
+         * HostCollector).
          */
         protected abstract Point createInfluxDbPoint(Object metricsObject);
     }
 
     public boolean imageStoreHasEnoughCapacity(DataStore imageStore) {
-        if (!_storageStats.keySet().contains(imageStore.getId())) { // Stats not available for this store yet, can be a new store. Better to assume it has enough capacity?
+        if (!_storageStats.keySet().contains(imageStore.getId())) { // Stats not available for this store yet, can be a
+                                                                    // new store. Better to assume it has enough
+                                                                    // capacity?
             return true;
         }
 
@@ -1891,29 +2082,37 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
         String readableTotalCapacity = NumbersUtil.toReadableSize((long) totalCapacity);
         String readableUsedCapacity = NumbersUtil.toReadableSize((long) usedCapacity);
 
-        logger.printf(Level.DEBUG, "Verifying image storage [%s]. Capacity: total=[%s], used=[%s], threshold=[%.2f%%].", imageStore, readableTotalCapacity, readableUsedCapacity, threshold * 100);
+        logger.printf(Level.DEBUG, "Verifying image storage [%s]. Capacity: total=[%s], used=[%s], threshold=[%.2f%%].",
+                imageStore, readableTotalCapacity, readableUsedCapacity, threshold * 100);
         if (usedCapacity / totalCapacity <= threshold) {
             return true;
         }
 
-        logger.printf(Level.WARN, "Image storage [%s] has not enough capacity. Capacity: total=[%s], used=[%s], threshold=[%.2f%%].", imageStore, readableTotalCapacity, readableUsedCapacity, threshold * 100);
+        logger.printf(Level.WARN,
+                "Image storage [%s] has not enough capacity. Capacity: total=[%s], used=[%s], threshold=[%.2f%%].",
+                imageStore, readableTotalCapacity, readableUsedCapacity, threshold * 100);
         return false;
     }
 
     public long imageStoreCurrentFreeCapacity(DataStore imageStore) {
         StorageStats imageStoreStats = _storageStats.get(imageStore.getId());
-        return imageStoreStats != null ? Math.max(0, imageStoreStats.getCapacityBytes() - imageStoreStats.getByteUsed()) : 0;
+        return imageStoreStats != null ? Math.max(0, imageStoreStats.getCapacityBytes() - imageStoreStats.getByteUsed())
+                : 0;
     }
 
     /**
-     * Calculates secondary storage disk capacity against a configurable threshold instead of the hardcoded default 95 % value
-     * @param imageStore secondary storage
-     * @param storeCapThreshold the threshold capacity for computing if secondary storage has enough space to accommodate the @this object
+     * Calculates secondary storage disk capacity against a configurable threshold
+     * instead of the hardcoded default 95 % value
+     * @param imageStore        secondary storage
+     * @param storeCapThreshold the threshold capacity for computing if secondary
+     *                          storage has enough space to accommodate the @this
+     *                          object
      * @return
      */
     public boolean imageStoreHasEnoughCapacity(DataStore imageStore, Double storeCapThreshold) {
         StorageStats imageStoreStats = _storageStats.get(imageStore.getId());
-        if (imageStoreStats != null && (imageStoreStats.getByteUsed() / (imageStoreStats.getCapacityBytes() * 1.0)) <= storeCapThreshold) {
+        if (imageStoreStats != null
+                && (imageStoreStats.getByteUsed() / (imageStoreStats.getCapacityBytes() * 1.0)) <= storeCapThreshold) {
             return true;
         }
         return false;
@@ -1923,54 +2122,74 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
      * Sends VMs metrics to the configured graphite host.
      */
     protected void sendVmMetricsToGraphiteHost(Map<Object, Object> metrics, HostVO host) {
-        logger.debug("Sending VmStats of host {} to {} host {}:{}", host, externalStatsType, externalStatsHost, externalStatsPort);
+        logger.debug("Sending VmStats of host {} to {} host {}:{}", host, externalStatsType, externalStatsHost,
+                externalStatsPort);
         try {
             GraphiteClient g = new GraphiteClient(externalStatsHost, externalStatsPort);
             g.sendMetrics(metrics);
         } catch (GraphiteException e) {
-            logger.debug("Failed sending VmStats to Graphite host " + externalStatsHost + ":" + externalStatsPort + ": " + e.getMessage());
+            logger.debug("Failed sending VmStats to Graphite host " + externalStatsHost + ":" + externalStatsPort + ": "
+                    + e.getMessage());
         }
     }
 
     /**
      * Prepares metrics for Graphite.
-     * @note this method must only be executed in case the configured stats collector is a Graphite host;
-     * otherwise, it will compromise the map of metrics used by another type of collector (e.g. InfluxDB).
+     * @note this method must only be executed in case the configured stats
+     *       collector is a Graphite host;
+     *       otherwise, it will compromise the map of metrics used by another type
+     *       of collector (e.g. InfluxDB).
      */
     private void prepareVmMetricsForGraphite(Map<Object, Object> metrics, VmStatsEntry statsForCurrentIteration) {
         VMInstanceVO vmVO = _vmInstance.findById(statsForCurrentIteration.getVmId());
         String vmName = vmVO.getUuid();
 
-        metrics.put(externalStatsPrefix + "cloudstack.stats.instances." + vmName + ".cpu.num", statsForCurrentIteration.getNumCPUs());
-        metrics.put(externalStatsPrefix + "cloudstack.stats.instances." + vmName + ".cpu.utilization", statsForCurrentIteration.getCPUUtilization());
-        metrics.put(externalStatsPrefix + "cloudstack.stats.instances." + vmName + ".network.read_kbs", statsForCurrentIteration.getNetworkReadKBs());
-        metrics.put(externalStatsPrefix + "cloudstack.stats.instances." + vmName + ".network.write_kbs", statsForCurrentIteration.getNetworkWriteKBs());
-        metrics.put(externalStatsPrefix + "cloudstack.stats.instances." + vmName + ".disk.write_kbs", statsForCurrentIteration.getDiskWriteKBs());
-        metrics.put(externalStatsPrefix + "cloudstack.stats.instances." + vmName + ".disk.read_kbs", statsForCurrentIteration.getDiskReadKBs());
-        metrics.put(externalStatsPrefix + "cloudstack.stats.instances." + vmName + ".disk.write_iops", statsForCurrentIteration.getDiskWriteIOs());
-        metrics.put(externalStatsPrefix + "cloudstack.stats.instances." + vmName + ".disk.read_iops", statsForCurrentIteration.getDiskReadIOs());
-        metrics.put(externalStatsPrefix + "cloudstack.stats.instances." + vmName + ".memory.total_kbs", statsForCurrentIteration.getMemoryKBs());
-        metrics.put(externalStatsPrefix + "cloudstack.stats.instances." + vmName + ".memory.internalfree_kbs", statsForCurrentIteration.getIntFreeMemoryKBs());
-        metrics.put(externalStatsPrefix + "cloudstack.stats.instances." + vmName + ".memory.target_kbs", statsForCurrentIteration.getTargetMemoryKBs());
+        metrics.put(externalStatsPrefix + "cloudstack.stats.instances." + vmName + ".cpu.num",
+                statsForCurrentIteration.getNumCPUs());
+        metrics.put(externalStatsPrefix + "cloudstack.stats.instances." + vmName + ".cpu.utilization",
+                statsForCurrentIteration.getCPUUtilization());
+        metrics.put(externalStatsPrefix + "cloudstack.stats.instances." + vmName + ".network.read_kbs",
+                statsForCurrentIteration.getNetworkReadKBs());
+        metrics.put(externalStatsPrefix + "cloudstack.stats.instances." + vmName + ".network.write_kbs",
+                statsForCurrentIteration.getNetworkWriteKBs());
+        metrics.put(externalStatsPrefix + "cloudstack.stats.instances." + vmName + ".disk.write_kbs",
+                statsForCurrentIteration.getDiskWriteKBs());
+        metrics.put(externalStatsPrefix + "cloudstack.stats.instances." + vmName + ".disk.read_kbs",
+                statsForCurrentIteration.getDiskReadKBs());
+        metrics.put(externalStatsPrefix + "cloudstack.stats.instances." + vmName + ".disk.write_iops",
+                statsForCurrentIteration.getDiskWriteIOs());
+        metrics.put(externalStatsPrefix + "cloudstack.stats.instances." + vmName + ".disk.read_iops",
+                statsForCurrentIteration.getDiskReadIOs());
+        metrics.put(externalStatsPrefix + "cloudstack.stats.instances." + vmName + ".memory.total_kbs",
+                statsForCurrentIteration.getMemoryKBs());
+        metrics.put(externalStatsPrefix + "cloudstack.stats.instances." + vmName + ".memory.internalfree_kbs",
+                statsForCurrentIteration.getIntFreeMemoryKBs());
+        metrics.put(externalStatsPrefix + "cloudstack.stats.instances." + vmName + ".memory.target_kbs",
+                statsForCurrentIteration.getTargetMemoryKBs());
     }
 
     /**
      * Persists VM stats in the database.
      * @param statsForCurrentIteration the metrics stats data to persist.
-     * @param timestamp the time that will be stamped.
+     * @param timestamp                the time that will be stamped.
      */
     protected void persistVirtualMachineStats(VmStatsEntry statsForCurrentIteration, Date timestamp) {
-        VmStatsEntryBase vmStats = new VmStatsEntryBase(statsForCurrentIteration.getVmId(), statsForCurrentIteration.getMemoryKBs(), statsForCurrentIteration.getIntFreeMemoryKBs(),
-                statsForCurrentIteration.getTargetMemoryKBs(), statsForCurrentIteration.getCPUUtilization(), statsForCurrentIteration.getNetworkReadKBs(),
-                statsForCurrentIteration.getNetworkWriteKBs(), statsForCurrentIteration.getNumCPUs(), statsForCurrentIteration.getDiskReadKBs(),
-                statsForCurrentIteration.getDiskWriteKBs(), statsForCurrentIteration.getDiskReadIOs(), statsForCurrentIteration.getDiskWriteIOs(),
+        VmStatsEntryBase vmStats = new VmStatsEntryBase(statsForCurrentIteration.getVmId(),
+                statsForCurrentIteration.getMemoryKBs(), statsForCurrentIteration.getIntFreeMemoryKBs(),
+                statsForCurrentIteration.getTargetMemoryKBs(), statsForCurrentIteration.getCPUUtilization(),
+                statsForCurrentIteration.getNetworkReadKBs(),
+                statsForCurrentIteration.getNetworkWriteKBs(), statsForCurrentIteration.getNumCPUs(),
+                statsForCurrentIteration.getDiskReadKBs(),
+                statsForCurrentIteration.getDiskWriteKBs(), statsForCurrentIteration.getDiskReadIOs(),
+                statsForCurrentIteration.getDiskWriteIOs(),
                 statsForCurrentIteration.getEntityType());
         VmStatsVO vmStatsVO = new VmStatsVO(statsForCurrentIteration.getVmId(), msId, timestamp, gson.toJson(vmStats));
         logger.trace(String.format("Recording VM stats: [%s].", vmStatsVO.toString()));
         vmStatsDao.persist(vmStatsVO);
     }
 
-    private String getVmDiskStatsEntryAsString(VmDiskStatsEntry statsForCurrentIteration, Hypervisor.HypervisorType hypervisorType) {
+    private String getVmDiskStatsEntryAsString(VmDiskStatsEntry statsForCurrentIteration,
+            Hypervisor.HypervisorType hypervisorType) {
         VmDiskStatsEntry entry;
         if (Hypervisor.HypervisorType.KVM.equals(hypervisorType)) {
             entry = new VmDiskStatsEntry(statsForCurrentIteration.getVmName(),
@@ -1993,10 +2212,12 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
     /**
      * Persists VM disk stats in the database.
      * @param statsForCurrentIteration the metrics stats data to persist.
-     * @param timestamp the time that will be stamped.
+     * @param timestamp                the time that will be stamped.
      */
-    protected void persistVolumeStats(long volumeId, VmDiskStatsEntry statsForCurrentIteration, Hypervisor.HypervisorType hypervisorType, Date timestamp) {
-        VolumeStatsVO volumeStatsVO = new VolumeStatsVO(volumeId, msId, timestamp, getVmDiskStatsEntryAsString(statsForCurrentIteration, hypervisorType));
+    protected void persistVolumeStats(long volumeId, VmDiskStatsEntry statsForCurrentIteration,
+            Hypervisor.HypervisorType hypervisorType, Date timestamp) {
+        VolumeStatsVO volumeStatsVO = new VolumeStatsVO(volumeId, msId, timestamp,
+                getVmDiskStatsEntryAsString(statsForCurrentIteration, hypervisorType));
         if (logger.isDebugEnabled()) {
             logger.debug(String.format("Recording volume stats: [%s].", volumeStatsVO));
         }
@@ -2011,7 +2232,8 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
         Integer maxRetentionTime = vmStatsMaxRetentionTime.value();
         if (maxRetentionTime <= 0) {
             logger.debug(String.format("Skipping VM stats cleanup. The [%s] parameter [%s] is set to 0 or less than 0.",
-                    ConfigKey.Scope.decodeAsCsv(vmStatsMaxRetentionTime.getScopeBitmask()), vmStatsMaxRetentionTime.toString()));
+                    ConfigKey.Scope.decodeAsCsv(vmStatsMaxRetentionTime.getScopeBitmask()),
+                    vmStatsMaxRetentionTime.toString()));
             return;
         }
         logger.trace("Removing older VM stats records.");
@@ -2028,8 +2250,10 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
         Integer maxRetentionTime = vmDiskStatsMaxRetentionTime.value();
         if (maxRetentionTime <= 0) {
             if (logger.isDebugEnabled()) {
-                logger.debug(String.format("Skipping Volume stats cleanup. The [%s] parameter [%s] is set to 0 or less than 0.",
-                        ConfigKey.Scope.decodeAsCsv(vmDiskStatsMaxRetentionTime.getScopeBitmask()), vmDiskStatsMaxRetentionTime.toString()));
+                logger.debug(String.format(
+                        "Skipping Volume stats cleanup. The [%s] parameter [%s] is set to 0 or less than 0.",
+                        ConfigKey.Scope.decodeAsCsv(vmDiskStatsMaxRetentionTime.getScopeBitmask()),
+                        vmDiskStatsMaxRetentionTime.toString()));
             }
             return;
         }
@@ -2040,12 +2264,15 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
     }
 
     /**
-     * Sends host metrics to a configured InfluxDB host. The metrics respects the following specification.</br>
+     * Sends host metrics to a configured InfluxDB host. The metrics respects the
+     * following specification.</br>
      * <b>Tags:</b>vm_id, uuid, instance_name, data_center_id, host_id</br>
-     * <b>Fields:</b>memory_total_kb, memory_internal_free_kbs, memory_target_kbs, cpu_utilization, cpus, network_write_kb, disk_read_iops, disk_read_kbs, disk_write_iops, disk_write_kbs
+     * <b>Fields:</b>memory_total_kb, memory_internal_free_kbs, memory_target_kbs,
+     * cpu_utilization, cpus, network_write_kb, disk_read_iops, disk_read_kbs,
+     * disk_write_iops, disk_write_kbs
      */
     protected Point createInfluxDbPointForHostMetrics(Object metricsObject) {
-        HostStatsEntry hostStatsEntry = (HostStatsEntry)metricsObject;
+        HostStatsEntry hostStatsEntry = (HostStatsEntry) metricsObject;
 
         Map<String, String> tagsToAdd = new HashMap<>();
         tagsToAdd.put(UUID_TAG, hostStatsEntry.getHostVo().getUuid());
@@ -2059,16 +2286,20 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
         fieldsToAdd.put(NETWORK_READ_KBS_FIELD, hostStatsEntry.getNetworkReadKBs());
         fieldsToAdd.put(NETWORK_WRITE_KBS_FIELD, hostStatsEntry.getNetworkWriteKBs());
 
-        return Point.measurement(INFLUXDB_HOST_MEASUREMENT).tag(tagsToAdd).time(System.currentTimeMillis(), TimeUnit.MILLISECONDS).fields(fieldsToAdd).build();
+        return Point.measurement(INFLUXDB_HOST_MEASUREMENT).tag(tagsToAdd)
+                .time(System.currentTimeMillis(), TimeUnit.MILLISECONDS).fields(fieldsToAdd).build();
     }
 
     /**
-     * Sends VMs metrics to a configured InfluxDB host. The metrics respects the following specification.</br>
+     * Sends VMs metrics to a configured InfluxDB host. The metrics respects the
+     * following specification.</br>
      * <b>Tags:</b>vm_id, uuid, instance_name, data_center_id, host_id</br>
-     * <b>Fields:</b>memory_total_kb, memory_internal_free_kbs, memory_target_kbs, cpu_utilization, cpus, network_write_kb, disk_read_iops, disk_read_kbs, disk_write_iops, disk_write_kbs
+     * <b>Fields:</b>memory_total_kb, memory_internal_free_kbs, memory_target_kbs,
+     * cpu_utilization, cpus, network_write_kb, disk_read_iops, disk_read_kbs,
+     * disk_write_iops, disk_write_kbs
      */
     protected Point createInfluxDbPointForVmMetrics(Object metricsObject) {
-        VmStatsEntry vmStatsEntry = (VmStatsEntry)metricsObject;
+        VmStatsEntry vmStatsEntry = (VmStatsEntry) metricsObject;
 
         Map<String, String> tagsToAdd = new HashMap<>();
         tagsToAdd.put(UUID_TAG, vmStatsEntry.getVmUuid());
@@ -2086,20 +2317,25 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
         fieldsToAdd.put(DISK_WRITE_IOPS_FIELD, vmStatsEntry.getDiskWriteIOs());
         fieldsToAdd.put(DISK_WRITE_KBS_FIELD, vmStatsEntry.getDiskWriteKBs());
 
-        return Point.measurement(INFLUXDB_VM_MEASUREMENT).tag(tagsToAdd).time(System.currentTimeMillis(), TimeUnit.MILLISECONDS).fields(fieldsToAdd).build();
+        return Point.measurement(INFLUXDB_VM_MEASUREMENT).tag(tagsToAdd)
+                .time(System.currentTimeMillis(), TimeUnit.MILLISECONDS).fields(fieldsToAdd).build();
     }
 
     /**
-     * Creates connection to InfluxDB. If the database does not exist, it throws a CloudRuntimeException. </br>
-     * @note the user can configure the database name on parameter 'stats.output.influxdb.database.name'; such database must be yet created and configured by the user.
-     * The Default name for the database is 'cloudstack_stats'.
+     * Creates connection to InfluxDB. If the database does not exist, it throws a
+     * CloudRuntimeException. </br>
+     * @note the user can configure the database name on parameter
+     *       'stats.output.influxdb.database.name'; such database must be yet
+     *       created and configured by the user.
+     *       The Default name for the database is 'cloudstack_stats'.
      */
     protected InfluxDB createInfluxDbConnection() {
         String influxDbQueryUrl = String.format("http://%s:%s/", externalStatsHost, externalStatsPort);
         InfluxDB influxDbConnection = InfluxDBFactory.connect(influxDbQueryUrl);
 
         if (!influxDbConnection.databaseExists(databaseName)) {
-            throw new CloudRuntimeException(String.format("Database with name %s does not exist in influxdb host %s:%s", databaseName, externalStatsHost, externalStatsPort));
+            throw new CloudRuntimeException(String.format("Database with name %s does not exist in influxdb host %s:%s",
+                    databaseName, externalStatsHost, externalStatsPort));
         }
 
         return influxDbConnection;
@@ -2110,7 +2346,7 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
      */
     protected void writeBatches(InfluxDB influxDbConnection, String dbName, List<Point> points) {
         BatchPoints batchPoints = BatchPoints.database(dbName).build();
-        if(!influxDbConnection.isBatchEnabled()){
+        if (!influxDbConnection.isBatchEnabled()) {
             influxDbConnection.enableBatch(BatchOptions.DEFAULTS);
         }
 
@@ -2122,33 +2358,44 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
     }
 
     /**
-     * Returns true if at least one of the current disk stats is different from the previous.</br>
-     * The considered disk stats are the following: bytes read, bytes write, IO read,  and IO write.
+     * Returns true if at least one of the current disk stats is different from the
+     * previous.</br>
+     * The considered disk stats are the following: bytes read, bytes write, IO
+     * read, and IO write.
      */
-    protected boolean isCurrentVmDiskStatsDifferentFromPrevious(VmDiskStatisticsVO previousVmDiskStats, VmDiskStatisticsVO currentVmDiskStats) {
+    protected boolean isCurrentVmDiskStatsDifferentFromPrevious(VmDiskStatisticsVO previousVmDiskStats,
+            VmDiskStatisticsVO currentVmDiskStats) {
         if (previousVmDiskStats != null) {
-            boolean bytesReadDifferentFromPrevious = previousVmDiskStats.getCurrentBytesRead() != currentVmDiskStats.getCurrentBytesRead();
-            boolean bytesWriteDifferentFromPrevious = previousVmDiskStats.getCurrentBytesWrite() != currentVmDiskStats.getCurrentBytesWrite();
-            boolean ioReadDifferentFromPrevious = previousVmDiskStats.getCurrentIORead() != currentVmDiskStats.getCurrentIORead();
-            boolean ioWriteDifferentFromPrevious = previousVmDiskStats.getCurrentIOWrite() != currentVmDiskStats.getCurrentIOWrite();
-            return bytesReadDifferentFromPrevious || bytesWriteDifferentFromPrevious || ioReadDifferentFromPrevious || ioWriteDifferentFromPrevious;
+            boolean bytesReadDifferentFromPrevious = previousVmDiskStats.getCurrentBytesRead() != currentVmDiskStats
+                    .getCurrentBytesRead();
+            boolean bytesWriteDifferentFromPrevious = previousVmDiskStats.getCurrentBytesWrite() != currentVmDiskStats
+                    .getCurrentBytesWrite();
+            boolean ioReadDifferentFromPrevious = previousVmDiskStats.getCurrentIORead() != currentVmDiskStats
+                    .getCurrentIORead();
+            boolean ioWriteDifferentFromPrevious = previousVmDiskStats.getCurrentIOWrite() != currentVmDiskStats
+                    .getCurrentIOWrite();
+            return bytesReadDifferentFromPrevious || bytesWriteDifferentFromPrevious || ioReadDifferentFromPrevious
+                    || ioWriteDifferentFromPrevious;
         }
         return true;
     }
 
     /**
-     * Returns true if all the VmDiskStatsEntry are Zeros (Bytes read, Bytes write, IO read, and IO write must be all equals to zero)
+     * Returns true if all the VmDiskStatsEntry are Zeros (Bytes read, Bytes write,
+     * IO read, and IO write must be all equals to zero)
      */
     protected boolean areAllDiskStatsZero(VmDiskStatsEntry vmDiskStat) {
-        return (vmDiskStat.getBytesRead() == 0) && (vmDiskStat.getBytesWrite() == 0) && (vmDiskStat.getIORead() == 0) && (vmDiskStat.getIOWrite() == 0);
+        return (vmDiskStat.getBytesRead() == 0) && (vmDiskStat.getBytesWrite() == 0) && (vmDiskStat.getIORead() == 0)
+                && (vmDiskStat.getIOWrite() == 0);
     }
 
     /**
      * Creates a HostVO SearchCriteria where:
      * <ul>
-     *  <li>"status" is Up;</li>
-     *  <li>"resourceState" is not in Maintenance, PrepareForMaintenance, or ErrorInMaintenance; and</li>
-     *  <li>"type" is Routing.</li>
+     * <li>"status" is Up;</li>
+     * <li>"resourceState" is not in Maintenance, PrepareForMaintenance, or
+     * ErrorInMaintenance; and</li>
+     * <li>"type" is Routing.</li>
      * </ul>
      */
     private SearchCriteria<HostVO> createSearchCriteriaForHostTypeRoutingStateUpAndNotInMaintenance() {
@@ -2175,7 +2422,6 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
         return dbStats;
     }
 
-
     public ManagementServerHostStats getManagementServerHostStats(String managementServerUuid) {
         return managementServerHostStats.get(managementServerUuid);
     }
@@ -2191,11 +2437,13 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
 
     @Override
     public ConfigKey<?>[] getConfigKeys() {
-        return new ConfigKey<?>[] {vmDiskStatsInterval, vmDiskStatsIntervalMin, vmNetworkStatsInterval, vmNetworkStatsIntervalMin, StatsTimeout, statsOutputUri,
-            vmStatsIncrementMetrics, vmStatsMaxRetentionTime, vmStatsCollectUserVMOnly, vmDiskStatsRetentionEnabled, vmDiskStatsMaxRetentionTime,
+        return new ConfigKey<?>[] { vmDiskStatsInterval, vmDiskStatsIntervalMin, vmNetworkStatsInterval,
+                vmNetworkStatsIntervalMin, StatsTimeout, statsOutputUri,
+                vmStatsIncrementMetrics, vmStatsMaxRetentionTime, vmStatsCollectUserVMOnly, vmDiskStatsRetentionEnabled,
+                vmDiskStatsMaxRetentionTime,
                 MANAGEMENT_SERVER_STATUS_COLLECTION_INTERVAL,
                 DATABASE_SERVER_STATUS_COLLECTION_INTERVAL,
-                DATABASE_SERVER_LOAD_HISTORY_RETENTION_NUMBER};
+                DATABASE_SERVER_LOAD_HISTORY_RETENTION_NUMBER };
     }
 
     public double getImageStoreCapacityThreshold() {
