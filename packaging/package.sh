@@ -64,7 +64,6 @@ NOW="$(date +%s)"
 #   $5 brand string to apply/override
 #   $6 use timestamp flag
 function packaging() {
- #   RPMDIR=$PWD/../dist/rpmbuild
     RPMDIR=$PWD/../../dist/rpmbuild
     SRCDIR=$PWD/..
     PACK_PROJECT=cloudstack
